@@ -1,0 +1,13 @@
+{
+  "name": "com.grygtools.audio",
+  "version": "1.0.0",
+  "displayName": "GrygTools-Audio",
+  "description": "Simple audio package",
+  "unity": "2020.3",
+  "dependencies": {
+    "com.unity.addressables": "1.21.20",
+    "com.unity.textmeshpro": "3.0.6",
+	"com.grygtools.utils": "1.0.0",
+	"com.grygtools.addressables": "1.0.0"
+  }
+}
