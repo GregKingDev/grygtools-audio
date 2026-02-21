@@ -299,7 +299,7 @@ namespace GrygTools.Audio
 
 				try
 				{
-					if (AddressableController.Instance.TryLoadAssetReference(entry.reference, out AudioClip loadedClip))
+					if (AddressableManager.Instance.TryLoadAssetReference(entry.reference, out AudioClip loadedClip))
 					{
 						if (audioClipLoadRefCounts.ContainsKey(entry.reference))
 						{
@@ -353,17 +353,17 @@ namespace GrygTools.Audio
 								audioClipLoadRefCounts[entry.reference]--;
 								if (audioClipLoadRefCounts[entry.reference] <= 0)
 								{
-									if (AddressableController.Instance.TryGetReferenceIfLoaded(entry.reference, out AudioClip loadedClip))
+									if (AddressableManager.Instance.TryGetIfLoaded(entry.reference, out AudioClip loadedClip))
 									{
 										loadedClip.UnloadAudioData();
 									}
 									audioClipLoadRefCounts.Remove(entry.reference);
-									AddressableController.Instance.ReleaseAssetReference(entry.reference);
+									AddressableManager.Instance.ReleaseAssetReference(entry.reference);
 								}
 							}
 							else
 							{
-								AddressableController.Instance.ReleaseAssetReference(entry.reference);
+								AddressableManager.Instance.ReleaseAssetReference(entry.reference);
 							}
 						}
 
