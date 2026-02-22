@@ -1,7 +1,9 @@
-﻿using GrygTools.AddressableUtils;
+﻿using Cysharp.Threading.Tasks;
+using GrygTools.AddressableUtils;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.Audio;
@@ -281,12 +283,7 @@ namespace GrygTools.Audio
 
 		public void LoadAudioConfig(AudioClipConfig config)
 		{
-			BuildAndValidateClipList(config.Entries);
-		}
-		
-		private void BuildAndValidateClipList(List<AudioClipConfigEntry> entries)
-		{
-			foreach (AudioClipConfigEntry entry in entries)
+			foreach (AudioClipConfigEntry entry in config.Entries)
 			{
 				if (entry.reference == null || !entry.reference.RuntimeKeyIsValid())
 				{
@@ -296,42 +293,122 @@ namespace GrygTools.Audio
 				{
 					continue;
 				}
-
-				try
+				var loadedClip = AddressableManager.Instance.LoadAssetReference<AudioClip>(entry.reference);
+			
+				if (audioClipLoadRefCounts.ContainsKey(entry.reference))
 				{
-					if (AddressableManager.Instance.TryLoadAssetReference(entry.reference, out AudioClip loadedClip))
-					{
-						if (audioClipLoadRefCounts.ContainsKey(entry.reference))
-						{
-							audioClipLoadRefCounts[entry.reference]++;
-						}
-						else
-						{
-							audioClipLoadRefCounts[entry.reference] = 1;
-						}
-
-						concurrentMaxesDictionary[entry.key] =
-							entry.maxSimultaneous <= 0 ? PerSfxMaxConcurrent : entry.maxSimultaneous;
-						minimumTimeSinceLastPlayDictionary[entry.key] = entry.minTimeBetweenPlays;
-
-						loadedClip.LoadAudioData();
-
-						if (clipsListDictionary.ContainsKey(entry.key))
-						{
-							clipsListDictionary[entry.key].Add(loadedClip);
-						}
-						else
-						{
-							clipsListDictionary[entry.key] = new List<AudioClip>(){loadedClip};
-						}
-					}
+					audioClipLoadRefCounts[entry.reference]++;
 				}
-				catch (Exception e)
+				else
 				{
-					Debug.LogError($"Failed to load audio addressable. Key:{entry.key} clip:{entry.reference}\nException:{e}");
+					audioClipLoadRefCounts[entry.reference] = 1;
+				}
+		
+				concurrentMaxesDictionary[entry.key] =
+					entry.maxSimultaneous <= 0 ? PerSfxMaxConcurrent : entry.maxSimultaneous;
+				minimumTimeSinceLastPlayDictionary[entry.key] = entry.minTimeBetweenPlays;
+		
+				loadedClip.LoadAudioData();
+		
+				if (clipsListDictionary.ContainsKey(entry.key))
+				{
+					clipsListDictionary[entry.key].Add(loadedClip);
+				}
+				else
+				{
+					clipsListDictionary[entry.key] = new List<AudioClip>(){loadedClip};
 				}
 			}
 		}
+
+		public async Task LoadAudioConfigAsync(AudioClipConfig config)
+		{
+			foreach (AudioClipConfigEntry entry in config.Entries)
+			{
+				if (entry.reference == null || !entry.reference.RuntimeKeyIsValid())
+				{
+					continue;
+				}
+				if (string.IsNullOrEmpty(entry.key))
+				{
+					continue;
+				}
+				var loadedClip = await AddressableManager.Instance.LoadAssetReferenceAsync<AudioClip>(entry.reference);
+				
+				if (audioClipLoadRefCounts.ContainsKey(entry.reference))
+				{
+					audioClipLoadRefCounts[entry.reference]++;
+				}
+				else
+				{
+					audioClipLoadRefCounts[entry.reference] = 1;
+				}
+			
+				concurrentMaxesDictionary[entry.key] =
+					entry.maxSimultaneous <= 0 ? PerSfxMaxConcurrent : entry.maxSimultaneous;
+				minimumTimeSinceLastPlayDictionary[entry.key] = entry.minTimeBetweenPlays;
+			
+				loadedClip.LoadAudioData();
+			
+				if (clipsListDictionary.ContainsKey(entry.key))
+				{
+					clipsListDictionary[entry.key].Add(loadedClip);
+				}
+				else
+				{
+					clipsListDictionary[entry.key] = new List<AudioClip>(){loadedClip};
+				}
+			}
+		}
+		
+		// private async void BuildAndValidateClipList(List<AudioClipConfigEntry> entries)
+		// {
+		// 	foreach (AudioClipConfigEntry entry in entries)
+		// 	{
+		// 		if (entry.reference == null || !entry.reference.RuntimeKeyIsValid())
+		// 		{
+		// 			continue;
+		// 		}
+		// 		if (string.IsNullOrEmpty(entry.key))
+		// 		{
+		// 			continue;
+		// 		}
+		//
+		// 		try
+		// 		{
+		// 			if (AddressableManager.Instance.TryLoadAssetReference(entry.reference, out AudioClip loadedClip))
+		// 			{
+		// 				if (audioClipLoadRefCounts.ContainsKey(entry.reference))
+		// 				{
+		// 					audioClipLoadRefCounts[entry.reference]++;
+		// 				}
+		// 				else
+		// 				{
+		// 					audioClipLoadRefCounts[entry.reference] = 1;
+		// 				}
+		//
+		// 				concurrentMaxesDictionary[entry.key] =
+		// 					entry.maxSimultaneous <= 0 ? PerSfxMaxConcurrent : entry.maxSimultaneous;
+		// 				minimumTimeSinceLastPlayDictionary[entry.key] = entry.minTimeBetweenPlays;
+		//
+		// 				loadedClip.LoadAudioData();
+		//
+		// 				if (clipsListDictionary.ContainsKey(entry.key))
+		// 				{
+		// 					clipsListDictionary[entry.key].Add(loadedClip);
+		// 				}
+		// 				else
+		// 				{
+		// 					clipsListDictionary[entry.key] = new List<AudioClip>(){loadedClip};
+		// 				}
+		// 			}
+		// 		}
+		// 		catch (Exception e)
+		// 		{
+		// 			Debug.LogError($"Failed to load audio addressable. Key:{entry.key} clip:{entry.reference}\nException:{e}");
+		// 		}
+		// 	}
+		// }
 
 		public void UnloadAudioConfig(AudioClipConfig config)
 		{

@@ -1,6 +1,6 @@
-﻿using System;
-using System.Collections;
+﻿using Cysharp.Threading.Tasks;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 
 namespace GrygTools.Audio
@@ -8,14 +8,28 @@ namespace GrygTools.Audio
 	public class OnStartAudioConfigLoader : MonoBehaviour
 	{
 		[SerializeField]
+		private bool useAsync = false;
+		[SerializeField]
 		private List<AudioClipConfig> audioConfigs;
 
-		private IEnumerator Start()
+		private async void Start()
 		{
-			yield return new WaitForSeconds(1f);
+			List<Task> tasks = new();
 			foreach (AudioClipConfig config in audioConfigs)
 			{
-				AudioController.Instance.LoadAudioConfig(config);
+				if (useAsync)
+				{
+					tasks.Add(AudioController.Instance.LoadAudioConfigAsync(config));
+				}
+				else
+				{
+					AudioController.Instance.LoadAudioConfig(config);
+				}
+				
+			}
+			if (useAsync)
+			{
+				await Task.WhenAll(tasks);
 			}
 		}
 	}

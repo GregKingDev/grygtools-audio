@@ -1,10 +1,13 @@
 {
     "name": "GrygTools.Audio.Runtime",
+    "rootNamespace": "",
     "references": [
         "Unity.Addressables",
+        "Unity.ResourceManager",
         "Unity.TextMeshPro",
-		"GrygTools.Utils.Runtime",
-		"GrygTools.Addressables.Runtime"
+        "GrygTools.Utils.Runtime",
+        "GrygTools.Addressables.Runtime",
+        "UniTask"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
