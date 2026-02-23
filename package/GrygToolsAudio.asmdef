@@ -6,7 +6,7 @@
         "Unity.ResourceManager",
         "Unity.TextMeshPro",
         "GrygTools.Utils.Runtime",
-        "GrygTools.Addressables.Runtime",
+        "GrygTools.AssetManagement.Runtime",
         "UniTask"
     ],
     "includePlatforms": [],
