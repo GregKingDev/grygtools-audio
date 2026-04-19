@@ -1,0 +1,21 @@
+{
+  "name": "GrygToolsAudio.Editor",
+  "references": [
+    "GrygTools.Audio.Runtime",
+    "Unity.TextMeshPro",
+    "GrygTools.Utils.Runtime",
+    "GrygTools.Utils.Editor",
+    "GrygToolsUtils.Editor"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
