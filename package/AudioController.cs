@@ -1,4 +1,5 @@
-﻿using GrygTools.AssetManagement;
+﻿using Cysharp.Threading.Tasks;
+using GrygTools.AssetManagement;
 using GrygToolsUtils;
 using System;
 using System.Collections;
@@ -14,6 +15,7 @@ namespace GrygTools.Audio
 	public class AudioController : MbSingleton<AudioController>
 	{
 		public const float MaxSfxVolume = 1f;
+		public const float MaxMusicVolume = 1f;
 
 		public const string MasterVolumeName = "MasterVolume";
 
@@ -23,6 +25,8 @@ namespace GrygTools.Audio
 		private const uint MaxConcurrent = 100;
 		private const uint PerSfxMaxConcurrent = 5;
 		public const float MinTimeSinceLastPlay = 0.01f;
+		
+		public delegate void SfxEndCallback();
 		
 		private bool isMuted = false;
 
@@ -50,6 +54,16 @@ namespace GrygTools.Audio
 		private readonly Dictionary<string, float> lastPlayedDictionary = new Dictionary<string, float>();
 
 		private readonly Dictionary<int, List<SfxComponent>> activeSfxByCategory = new();
+		
+#region music fields
+		private Transform musicPoolTransform = null;
+		private MusicTrackComponent musicCompTemplate = null;
+		
+		private readonly Dictionary<int, MusicTrackComponent> musicDictionary = new Dictionary<int, MusicTrackComponent>();
+		private MusicTrackComponent playingTrack = null;
+
+		private AudioMixerGroup musicGroup;
+#endregion
 		
 		private AudioMixer masterMixer;
 		private AudioMixer MasterMixer
@@ -82,7 +96,14 @@ namespace GrygTools.Audio
 			foreach (SfxCategory category in AudioSettings.sfxCategories)
 			{
 				AudioMixerGroup[] groups = MasterMixer.FindMatchingGroups(category.targetGroupName);
-				sfxCategoryToGroup.Add(category.id, groups[0]);
+				if (category.isMusicGroup)
+				{
+					musicGroup = groups[0];
+				}
+				else
+				{
+					sfxCategoryToGroup.Add(category.id, groups[0]);
+				}
 			}
 			
 			LoadVolumeFromSettings();
@@ -92,6 +113,10 @@ namespace GrygTools.Audio
 			sfxPoolTransform = sfxPoolObj.transform;
 			sfxPoolTransform.parent = trans;
 			
+			GameObject musicPoolObj = new GameObject("MusicPool");
+			musicPoolTransform = musicPoolObj.transform;
+			musicPoolTransform.parent = trans;
+			
 			GameObject sfxObjTemplate = new GameObject("sfxTemplate");
 			sfxObjTemplate.transform.parent = transform;
 			sfxCompTemplate = sfxObjTemplate.AddComponent<SfxComponent>();
@@ -99,6 +124,18 @@ namespace GrygTools.Audio
 			sfxCompTemplate.Source.playOnAwake = false;
 			sfxCompTemplate.Source.spatialize = false;
 			sfxCompTemplate.Source.spatialBlend = 0;
+			
+			GameObject musicObjTemplate = new GameObject("musicTemplate");
+			musicObjTemplate.transform.parent = transform;
+			musicCompTemplate = musicObjTemplate.AddComponent<MusicTrackComponent>();
+			musicCompTemplate.Source.spatialize = false;
+			musicCompTemplate.Source.priority = 0;
+			musicCompTemplate.Source.spatialBlend = 0;
+			
+			foreach (MusicPriorityCategory musicCategory in AudioSettings.musicCategories)
+			{
+				musicDictionary.Add(musicCategory.priority, Instantiate(musicCompTemplate, musicPoolObj.transform).Init(musicCategory));
+			}
 		}
 		
 		private IEnumerator DelayedLoadVolumeFromSettings()
@@ -281,6 +318,14 @@ namespace GrygTools.Audio
 			sfxPool.Remove(comp);
 		}
 
+		public void LoadAudioConfig(IEnumerable<AudioClipConfig> configs)
+		{
+			foreach (AudioClipConfig config in configs)
+			{
+				LoadAudioConfig(config);
+			}
+		}
+
 		public void LoadAudioConfig(AudioClipConfig config)
 		{
 			foreach (AudioClipConfigEntry entry in config.Entries)
@@ -321,8 +366,19 @@ namespace GrygTools.Audio
 			}
 		}
 
+		public async Task LoadAudioConfigAsync(IEnumerable<AudioClipConfig> configs)
+		{
+			List<Task> loadTasks = new List<Task>();
+			foreach (AudioClipConfig config in configs)
+			{
+				loadTasks.Add(LoadAudioConfigAsync(config));
+			}
+			await Task.WhenAll(loadTasks);
+		}
+
 		public async Task LoadAudioConfigAsync(AudioClipConfig config)
 		{
+			List<Task<AudioClip>> loadTasks = new List<Task<AudioClip>>();
 			foreach (AudioClipConfigEntry entry in config.Entries)
 			{
 				if (entry.reference == null || !entry.reference.RuntimeKeyIsValid())
@@ -333,86 +389,47 @@ namespace GrygTools.Audio
 				{
 					continue;
 				}
-				var loadedClip = await AddressableManager.Instance.LoadAssetReferenceAsync<AudioClip>(entry.reference);
-				
-				if (audioClipLoadRefCounts.ContainsKey(entry.reference))
+				loadTasks.Add(AddressableManager.Instance.LoadAssetReferenceAsync<AudioClip>(entry.reference));
+			}
+			await Task.WhenAll(loadTasks);
+
+			for (int i = 0; i < loadTasks.Count; i++)
+			{
+				Task<AudioClip> task = loadTasks[i];
+				AudioClipConfigEntry entry = config.Entries[i];
+				if (!audioClipLoadRefCounts.TryAdd(entry.reference, 1))
 				{
 					audioClipLoadRefCounts[entry.reference]++;
 				}
-				else
-				{
-					audioClipLoadRefCounts[entry.reference] = 1;
-				}
-			
+
 				concurrentMaxesDictionary[entry.key] =
 					entry.maxSimultaneous <= 0 ? PerSfxMaxConcurrent : entry.maxSimultaneous;
 				minimumTimeSinceLastPlayDictionary[entry.key] = entry.minTimeBetweenPlays;
 			
-				loadedClip.LoadAudioData();
+				task.Result.LoadAudioData();
 			
-				if (clipsListDictionary.ContainsKey(entry.key))
+				if (clipsListDictionary.TryGetValue(entry.key, out List<AudioClip> value))
 				{
-					clipsListDictionary[entry.key].Add(loadedClip);
+					value.Add(task.Result);
 				}
 				else
 				{
-					clipsListDictionary[entry.key] = new List<AudioClip>(){loadedClip};
+					clipsListDictionary[entry.key] = new List<AudioClip>(){task.Result};
 				}
 			}
 		}
 		
-		// private async void BuildAndValidateClipList(List<AudioClipConfigEntry> entries)
-		// {
-		// 	foreach (AudioClipConfigEntry entry in entries)
-		// 	{
-		// 		if (entry.reference == null || !entry.reference.RuntimeKeyIsValid())
-		// 		{
-		// 			continue;
-		// 		}
-		// 		if (string.IsNullOrEmpty(entry.key))
-		// 		{
-		// 			continue;
-		// 		}
-		//
-		// 		try
-		// 		{
-		// 			if (AddressableManager.Instance.TryLoadAssetReference(entry.reference, out AudioClip loadedClip))
-		// 			{
-		// 				if (audioClipLoadRefCounts.ContainsKey(entry.reference))
-		// 				{
-		// 					audioClipLoadRefCounts[entry.reference]++;
-		// 				}
-		// 				else
-		// 				{
-		// 					audioClipLoadRefCounts[entry.reference] = 1;
-		// 				}
-		//
-		// 				concurrentMaxesDictionary[entry.key] =
-		// 					entry.maxSimultaneous <= 0 ? PerSfxMaxConcurrent : entry.maxSimultaneous;
-		// 				minimumTimeSinceLastPlayDictionary[entry.key] = entry.minTimeBetweenPlays;
-		//
-		// 				loadedClip.LoadAudioData();
-		//
-		// 				if (clipsListDictionary.ContainsKey(entry.key))
-		// 				{
-		// 					clipsListDictionary[entry.key].Add(loadedClip);
-		// 				}
-		// 				else
-		// 				{
-		// 					clipsListDictionary[entry.key] = new List<AudioClip>(){loadedClip};
-		// 				}
-		// 			}
-		// 		}
-		// 		catch (Exception e)
-		// 		{
-		// 			Debug.LogError($"Failed to load audio addressable. Key:{entry.key} clip:{entry.reference}\nException:{e}");
-		// 		}
-		// 	}
-		// }
-
 		public void UnloadAudioConfig(AudioClipConfig config)
 		{
 			InternalUnloadClipList(config.Entries);
+		}
+		
+		public void UnloadAudioConfig(IEnumerable<AudioClipConfig> configs)
+		{
+			foreach (AudioClipConfig config in configs)
+			{
+				UnloadAudioConfig(config);
+			}
 		}
 		
 		private void InternalUnloadClipList(List<AudioClipConfigEntry> entries)
@@ -476,5 +493,202 @@ namespace GrygTools.Audio
 				MasterMixer.SetFloat(data.targetGroupName, Mathf.Log(adjustedVolume) * VolumeLogScalar);
 			}
 		}
+		
+#region music
+		public void PlayTrack(MusicConfig config, SfxEndCallback onEndCallback = null)
+		{
+			if (config == null || !config.IsSet())
+			{
+				Debug.LogWarning("MusicConfig was null or no track was set.");
+				return;
+			}
+			PlayTrack(config.TrackName, config.Priority, config.TrackVolume, config.Looping, config.CrossFadeTime, onEndCallback, config.StartOffset);
+		}
+		
+		public void PlayTrack(string clipName, int priority, float vol = 1f, bool loop = true, float crossFadeTime = 0,
+			SfxEndCallback onEndCallback = null, float startOffset = 0f)
+		{
+			InternalPlayTrack(clipName, priority, vol, loop, crossFadeTime, onEndCallback, startOffset);
+		}
+		
+		private void InternalPlayTrack(string clipName, int priority, float vol = 1f, bool loop = true,
+			float crossFadeTime = 0, SfxEndCallback onEndCallback = null, float startOffset = 0f)
+		{
+			if (TryGetClipFromName(clipName, out AudioClip clip))
+			{
+				if(musicDictionary.TryGetValue(priority, out MusicTrackComponent targetComponent))
+				{
+					//Check if track is playing or waiting to play at that priority, try to resume the track if waiting on priority
+					if (targetComponent.TrackName == clipName)
+					{
+						if (targetComponent.IsPlaying() || targetComponent.IsWaitingOnPriority)
+						{
+							ResumeNextPriority();
+							return;
+						}
+					}
+
+					//If there is no track playing or the priority attempting to play is not busy play this track now
+					if (playingTrack == null || !playingTrack.IsBusy)
+					{
+						targetComponent.PlayTrack(musicGroup, clip, clipName, crossFadeTime / 2, vol, loop, onEndCallback, true, startOffset);
+						playingTrack = targetComponent;
+					}
+					else if(priority >= playingTrack.Priority)
+					{
+						targetComponent.SetTrackData(musicGroup, clip, clipName, vol, loop, onEndCallback, startOffset);
+						
+						playingTrack.FadeOut(crossFadeTime / 2, () =>
+						{
+							playingTrack.SuspendTrack();
+							ResumeNextPriority(crossFadeTime / 2);
+						});
+					}
+					else // set data, do not transition to track
+					{
+						targetComponent.SetTrackData(musicGroup, clip, clipName, vol, loop, onEndCallback, startOffset);
+					}
+				}
+			}
+		}
+		
+		public void SuspendAllMusic()
+		{
+			playingTrack = null;
+			foreach (KeyValuePair<int,MusicTrackComponent> pair in musicDictionary)
+			{
+				if (pair.Value.IsPlaying())
+				{
+					pair.Value.SuspendTrack();
+				}
+			}
+		}
+
+		public void ResumeMusic()
+		{
+			ResumeNextPriority();
+		}
+
+		internal void ResumeNextPriority(float fadeTime = 0f)
+		{
+			
+			for (int i = AudioSettings.musicCategories.Count - 1; i >= 0; i--)
+			{
+				if (musicDictionary.TryGetValue(AudioSettings.musicCategories[i].priority, out MusicTrackComponent track))
+				{
+					//If a valid track is already playing then there is no need to resume
+					if (track.IsPlaying())
+					{
+						return;
+					}
+					
+					if (track.IsWaitingOnPriority)
+					{
+						track.Unpause(fadeTime != 0 ? fadeTime : track.FadeInTime);
+						playingTrack = track;
+						return;
+					}
+				}
+			}
+		}
+
+		public void StopTrack(MusicConfig config, bool fadeOut = false)
+		{
+			if (config == null || !config.IsSet())
+			{
+				Debug.LogWarning("Music config is null or no track is set.");
+				return;
+			}
+
+			StopTrack(config.TrackName, config.CrossFadeTime/2);
+		}
+
+		public void StopTrack(string trackName, float fadeTime = 0f)
+		{
+			foreach (KeyValuePair<int,MusicTrackComponent> pair in musicDictionary)
+			{
+				MusicTrackComponent track = pair.Value;
+				if (track.TrackName == trackName)
+				{
+					if (track == playingTrack)
+					{
+						if (fadeTime > 0f)
+						{
+							track.FadeOut(fadeTime, () =>
+							{
+								track.StopTrack();
+								ResumeNextPriority(fadeTime);
+							});
+
+						}
+						else
+						{
+							track.StopTrack();
+							ResumeNextPriority();
+						}
+					}
+					else
+					{
+						track.StopTrack();	
+					}
+
+					return;
+				}
+			}
+		}
+		
+		public void StopTrackByPriority(int priority)
+		{
+			if (musicDictionary.TryGetValue(priority, out MusicTrackComponent track))
+			{
+				track.StopTrack();
+				if (playingTrack == track)
+				{
+					track.FadeOut(track.FadeOutTime, () =>
+					{
+						track.StopTrack();
+						ResumeNextPriority();
+					});
+				}
+			}
+		}
+
+		public void StopAllTracks()
+		{
+			foreach (KeyValuePair<int,MusicTrackComponent> pair in musicDictionary)
+			{
+				pair.Value.StopTrack();
+			}
+		}
+
+		public void SetTrackPosition(string trackName, float position)
+		{
+			foreach (MusicTrackComponent trackComponent in musicDictionary.Values)
+			{
+				if (trackComponent.TrackName.Equals(trackName))
+				{
+					trackComponent.SetPosition(position);
+				}
+			}
+		}
+
+		public void SetTrackPosition(MusicConfig config, float position)
+		{
+			SetTrackPosition(config.Priority, position);
+		}
+		
+		public void SetTrackPosition(int trackType, float position)
+		{
+			if (musicDictionary.TryGetValue(trackType, out MusicTrackComponent track))
+			{
+				track.SetPosition(position);
+			}
+		}
+
+		public void SetPlayingTrackPosition(float position)
+		{
+			playingTrack.SetPosition(position);
+		}
+#endregion music
 	}
 }

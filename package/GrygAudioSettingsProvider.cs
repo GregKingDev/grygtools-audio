@@ -24,10 +24,17 @@ namespace GrygTools.Audio
 			EditorGUILayout.PropertyField(customSettings.FindProperty("masterVolume"));
 			
 			EditorGUILayout.PropertyField(customSettings.FindProperty("sfxCategories"));
-
+			
 			if (GUILayout.Button("Validate") && (customSettings.targetObject is GrygAudioSettings settings))
 			{
-				settings.RunValidation();
+				settings.RunSfxValidation();
+			}
+			
+			EditorGUILayout.PropertyField(customSettings.FindProperty("musicCategories"));
+			
+			if (GUILayout.Button("Validate") && (customSettings.targetObject is GrygAudioSettings musicSettings))
+			{
+				musicSettings.RunMusicValidation();
 			}
 			
 			customSettings.ApplyModifiedPropertiesWithoutUndo();

@@ -12,8 +12,17 @@ namespace GrygTools.Audio
 		public int id;
 		public string name;
 		public string targetGroupName;
+		public bool isMusicGroup;
 		[Range(0f, 1f)]
 		public float volume = 1;
+	}
+	
+	[Serializable]
+	public class MusicPriorityCategory
+	{
+		[ReadOnly][Tooltip("Higher values take precendence in playing, if 0 is playing and 1 is requested 0 will be stopped and 1 started. Upon stopping 1 0 will resume")]
+		public int priority;
+		public string name;
 	}
 	
 	public class GrygAudioSettings : ScriptableObject
@@ -26,6 +35,9 @@ namespace GrygTools.Audio
 
 		[SerializeField]
 		public List<SfxCategory> sfxCategories;
+		
+		[SerializeField]
+		public List<MusicPriorityCategory> musicCategories;
 
 		public static GrygAudioSettings GetOrCreateSettings()
 		{
@@ -106,28 +118,76 @@ namespace GrygTools.Audio
 			}
 		}
 		
-		public void RunValidation()
+		internal void RunSfxValidation()
 		{
 			HashSet<int> ids = new();
-			List<int> indecesToBeRemoved = new();
+			List<int> sfxIndecesToBeRemoved = new();
+			List<int> musicIndecesToBeToggled = new();
+			int musicGroupCount = 0;
 			int highestId = 0;
 			for (int i = 0; i < sfxCategories.Count; i++)
 			{
+				if(sfxCategories[i].isMusicGroup)
+				{
+					musicGroupCount++;
+					if (musicGroupCount > 1)
+					{
+						musicIndecesToBeToggled.Add(i);
+						Debug.LogError("Audio Categories list already contains a music group. Adjusting music group settings.");
+					}
+				}
 				if (!ids.Add(sfxCategories[i].id))
 				{
 					Debug.LogError($"Audio Categories list already contains ID {sfxCategories[i].id}. Adjusting Ids.");
-					indecesToBeRemoved.Add(i);
+					sfxIndecesToBeRemoved.Add(i);
 				}
 				highestId = Math.Max(highestId, sfxCategories[i].id);
 			}
 
-			for(int i = 0; i < indecesToBeRemoved.Count; i++)
+			if (musicGroupCount < 1)
+			{
+				Debug.LogError($"No music group found, you will not be able to use gryg tools to play music without a music group set.");
+			}
+
+			for(int i = 0; i < sfxIndecesToBeRemoved.Count; i++)
 			{
 				highestId++;
-				sfxCategories[indecesToBeRemoved[i]].id = highestId;
+				sfxCategories[sfxIndecesToBeRemoved[i]].id = highestId;
+			}
+
+			for (int i = 0; i < musicIndecesToBeToggled.Count; i++)
+			{
+				sfxCategories[musicIndecesToBeToggled[i]].isMusicGroup = false;
 			}
 			
-			if (indecesToBeRemoved.Count > 0)
+			if (sfxIndecesToBeRemoved.Count > 0 || musicIndecesToBeToggled.Count > 0)
+			{
+				UnityEditor.SettingsService.NotifySettingsProviderChanged();
+			}
+		}
+
+		internal void RunMusicValidation()
+		{
+			HashSet<int> ids = new();
+			List<int> musicIndecesToBeRemoved = new();
+			int highestId = 0;
+			for (int i = 0; i < musicCategories.Count; i++)
+			{
+				if (!ids.Add(musicCategories[i].priority))
+				{
+					Debug.LogError($"Audio Categories list already contains ID {musicCategories[i].priority}. Adjusting Ids.");
+					musicIndecesToBeRemoved.Add(i);
+				}
+				highestId = Math.Max(highestId, musicCategories[i].priority);
+			}
+
+			for(int i = 0; i < musicIndecesToBeRemoved.Count; i++)
+			{
+				highestId++;
+				musicCategories[musicIndecesToBeRemoved[i]].priority = highestId;
+			}
+			
+			if (musicIndecesToBeRemoved.Count > 0)
 			{
 				UnityEditor.SettingsService.NotifySettingsProviderChanged();
 			}

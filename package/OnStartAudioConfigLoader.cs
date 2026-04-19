@@ -1,4 +1,5 @@
 ﻿using Cysharp.Threading.Tasks;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -10,26 +11,27 @@ namespace GrygTools.Audio
 		[SerializeField]
 		private bool useAsync = false;
 		[SerializeField]
+		private bool unloadOnDestroy = false;
+		[SerializeField]
 		private List<AudioClipConfig> audioConfigs;
 
 		private async void Start()
 		{
-			List<Task> tasks = new();
-			foreach (AudioClipConfig config in audioConfigs)
-			{
-				if (useAsync)
-				{
-					tasks.Add(AudioController.Instance.LoadAudioConfigAsync(config));
-				}
-				else
-				{
-					AudioController.Instance.LoadAudioConfig(config);
-				}
-				
-			}
 			if (useAsync)
 			{
-				await Task.WhenAll(tasks);
+				await AudioController.Instance.LoadAudioConfigAsync(audioConfigs);
+			}
+			else
+			{
+				AudioController.Instance.LoadAudioConfig(audioConfigs);
+			}
+		}
+
+		private void OnDestroy()
+		{
+			foreach (AudioClipConfig config in audioConfigs)
+			{
+				AudioController.Instance.UnloadAudioConfig(config);
 			}
 		}
 	}
