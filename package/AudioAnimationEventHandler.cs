@@ -1,8 +1,8 @@
-using GrygTools.Audio;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-namespace Audio
+
+namespace GrygTools.Audio
 {
 	[Serializable]
 	public class AnimationSfx

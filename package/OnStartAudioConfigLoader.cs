@@ -1,7 +1,4 @@
-﻿using Cysharp.Threading.Tasks;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace GrygTools.Audio
@@ -29,9 +26,12 @@ namespace GrygTools.Audio
 
 		private void OnDestroy()
 		{
-			foreach (AudioClipConfig config in audioConfigs)
+			if (unloadOnDestroy)
 			{
-				AudioController.Instance.UnloadAudioConfig(config);
+				foreach (AudioClipConfig config in audioConfigs)
+				{
+					AudioController.Instance.UnloadAudioConfig(config);
+				}
 			}
 		}
 	}
