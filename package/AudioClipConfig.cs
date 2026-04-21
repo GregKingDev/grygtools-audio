@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
+using UnityEngine.Serialization;
 
 namespace GrygTools.Audio
 {
@@ -9,17 +10,29 @@ namespace GrygTools.Audio
 	public class AudioClipConfig : ScriptableObject
 	{
 		[SerializeField]
-		public List<AudioClipConfigEntry> Entries = new List<AudioClipConfigEntry>();
+		private List<AudioClipConfigEntry> m_Entries = new List<AudioClipConfigEntry>();
+		public List<AudioClipConfigEntry> Entries => m_Entries;
 	}
 	
 	[Serializable]
 	public class AudioClipConfigEntry
 	{
-		public string key;
-		public AssetReferenceT<AudioClip> reference;
+		[SerializeField]
+		private string m_Key;
+		public string Key => m_Key;
+		
+		[SerializeField]
+		private AssetReferenceT<AudioClip> m_Reference;
+		public AssetReferenceT<AudioClip> Reference => m_Reference;
+		
+		[SerializeField]
 		[Min(0)]
-		public uint maxSimultaneous = 5;
+		private uint m_MaxSimultaneous = 5;
+		public uint MaxSimultaneous => m_MaxSimultaneous;
+		
+		[SerializeField]
 		[Min(0f)]
-		public float minTimeBetweenPlays = 0.01f;
+		private float m_MinTimeBetweenPlays = 0.01f;
+		public float MinTimeBetweenPlays => m_MinTimeBetweenPlays;
 	}
 }

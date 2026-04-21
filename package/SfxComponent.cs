@@ -14,75 +14,75 @@ namespace GrygTools.Audio
 			Paused = 4,
 			Destroyed = 5
 		}
-		private AudioSource source = null;
-		public AudioSource Source => source;
+		private AudioSource m_Source = null;
+		public AudioSource Source => m_Source;
 		
-		private string sfxName = string.Empty;
-		public string SfxName => sfxName;
+		private string m_SfxName = string.Empty;
+		public string SfxName => m_SfxName;
 		
-		private int requestingObjHash = 0;
-		public int RequestingObjHash => requestingObjHash;
+		private int m_RequestingObjHash = 0;
+		public int RequestingObjHash => m_RequestingObjHash;
 		
-		private float sfxDelayTimer = 0f;
-		private float sfxTimer = 0f;
-		private SfxState state = SfxState.Idle;
+		private float m_SfxDelayTimer = 0f;
+		private float m_SfxTimer = 0f;
+		private SfxState m_State = SfxState.Idle;
 		
-		private int category = 1;
-		public int Category => category;
+		private int m_Category = 1;
+		public int Category => m_Category;
 		
-		private Action callback;
+		private Action m_Callback;
 
-		private bool isBusy = false;
-		public bool IsBusy => isBusy;
+		private bool m_IsBusy = false;
+		public bool IsBusy => m_IsBusy;
 		
 		private void Awake()
 		{
-			if (source == null)
+			if (m_Source == null)
 			{
-				if (!TryGetComponent(out source))
+				if (!TryGetComponent(out m_Source))
 				{
-					source = gameObject.AddComponent<AudioSource>();
+					m_Source = gameObject.AddComponent<AudioSource>();
 				}
 			}
 		}
 		
 		internal void SetBusy(bool busy)
 		{
-			isBusy = busy;
+			m_IsBusy = busy;
 		}
 		
 		internal void PlaySfx(AudioMixerGroup sfxGroup, AudioClip clip, string clipName, GameObject requestingObj, float vol,
 			bool looping, float delay, Action cb, int category, float pitch = 1f)
 		{
-			sfxName = clipName;
+			m_SfxName = clipName;
 			if (requestingObj != null)
 			{
-				requestingObjHash = requestingObj.GetHashCode();
+				m_RequestingObjHash = requestingObj.GetHashCode();
 				transform.parent = requestingObj.transform;
-				source.loop = looping;
+				m_Source.loop = looping;
 			}
 			else
 			{
-				requestingObjHash = 0;
-				source.loop = false;
+				m_RequestingObjHash = 0;
+				m_Source.loop = false;
 			}
 			
-			source.clip = clip;
-			this.category = category;
-			source.volume = vol;
-			source.outputAudioMixerGroup = sfxGroup;
-			source.pitch = pitch;
-			callback = cb;
-			sfxDelayTimer = delay;
-			sfxTimer = 0f;
+			m_Source.clip = clip;
+			this.m_Category = category;
+			m_Source.volume = vol;
+			m_Source.outputAudioMixerGroup = sfxGroup;
+			m_Source.pitch = pitch;
+			m_Callback = cb;
+			m_SfxDelayTimer = delay;
+			m_SfxTimer = 0f;
 			
-			if (sfxDelayTimer <= 0)
+			if (m_SfxDelayTimer <= 0)
 			{
 				InternalPlaySfx();
 			}
 			else
 			{
-				state = SfxState.Waiting;
+				m_State = SfxState.Waiting;
 			}
 			
 			AudioController.Instance.IncrementClipCount(this);
@@ -90,31 +90,31 @@ namespace GrygTools.Audio
 		
 		private void InternalPlaySfx()
 		{
-			state = SfxState.Playing;
-			source.Play();
-			sfxTimer = source.clip.length;
+			m_State = SfxState.Playing;
+			m_Source.Play();
+			m_SfxTimer = m_Source.clip.length;
 		}
 		
 		private void Update()
 		{
-			if (isBusy)
+			if (m_IsBusy)
 			{
-				if (state == SfxState.Waiting)
+				if (m_State == SfxState.Waiting)
 				{
-					sfxDelayTimer -= Time.unscaledDeltaTime;
-					if (sfxDelayTimer <= 0)
+					m_SfxDelayTimer -= Time.unscaledDeltaTime;
+					if (m_SfxDelayTimer <= 0)
 					{
 						InternalPlaySfx();
 					}	
 				}
-				else if (state == SfxState.Playing)
+				else if (m_State == SfxState.Playing)
 				{
-					sfxTimer -= Time.unscaledDeltaTime;
-					if (sfxTimer <= 0)
+					m_SfxTimer -= Time.unscaledDeltaTime;
+					if (m_SfxTimer <= 0)
 					{
-						if (source.loop)
+						if (m_Source.loop)
 						{
-							sfxTimer = source.clip.length + sfxTimer;
+							m_SfxTimer = m_Source.clip.length + m_SfxTimer;
 						}
 						else
 						{
@@ -128,50 +128,50 @@ namespace GrygTools.Audio
 		private void OnFinishedPlaying()
 		{
 			AudioController.Instance.DecrementClipCount(this);
-			state = SfxState.Idle;
+			m_State = SfxState.Idle;
 			AudioController.Instance.ReturnSfxObject(this);
-			callback?.Invoke();
+			m_Callback?.Invoke();
 		}
 
 		internal void StopSfx()
 		{
-			source.Stop();
+			m_Source.Stop();
 			AudioController.Instance.DecrementClipCount(this);
 			AudioController.Instance.ReturnSfxObject(this);
-			state = SfxState.Idle;
+			m_State = SfxState.Idle;
 		}
 		
 		public void Pause()
 		{
-			if (state is SfxState.Playing or SfxState.Waiting)
+			if (m_State is SfxState.Playing or SfxState.Waiting)
 			{
-				state = SfxState.Paused;
-				source.Pause();
+				m_State = SfxState.Paused;
+				m_Source.Pause();
 			}
 		}
 
 		public void Unpause()
 		{
-			if (state == SfxState.Paused)
+			if (m_State == SfxState.Paused)
 			{
-				if (sfxDelayTimer > 0f)
+				if (m_SfxDelayTimer > 0f)
 				{
-					state = SfxState.Waiting;
+					m_State = SfxState.Waiting;
 				}
-				else if (sfxTimer > 0)
+				else if (m_SfxTimer > 0)
 				{
-					state = SfxState.Playing;
-					source.UnPause();
+					m_State = SfxState.Playing;
+					m_Source.UnPause();
 				}
 			}
 		}
 		
 		private void OnDestroy()
 		{
-			source.Stop();
-			state = SfxState.Destroyed;
+			m_Source.Stop();
+			m_State = SfxState.Destroyed;
 			AudioController.Instance.RemoveSfxCompOnDestroy(this);
-			if (isBusy)
+			if (m_IsBusy)
 			{
 				AudioController.Instance.DecrementClipCount(this);
 			}

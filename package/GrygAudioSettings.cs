@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace GrygTools.Audio
 {
@@ -9,20 +10,20 @@ namespace GrygTools.Audio
 	public class SfxCategory
 	{
 		[ReadOnly]
-		public int id;
-		public string name;
-		public string targetGroupName;
-		public bool isMusicGroup;
+		public int Id;
+		public string Name;
+		public string TargetGroupName;
+		public bool IsMusicGroup;
 		[Range(0f, 1f)]
-		public float volume = 1;
+		public float Volume = 1;
 	}
 	
 	[Serializable]
 	public class MusicPriorityCategory
 	{
 		[ReadOnly][Tooltip("Higher values take precendence in playing, if 0 is playing and 1 is requested 0 will be stopped and 1 started. Upon stopping 1 0 will resume")]
-		public int priority;
-		public string name;
+		public int Priority;
+		public string Name;
 	}
 	
 	public class GrygAudioSettings : ScriptableObject
@@ -31,13 +32,13 @@ namespace GrygTools.Audio
 
 		[SerializeField]
 		[Range(0f, 1f)]
-		public float masterVolume = 1;
+		public float MasterVolume = 1;
 
 		[SerializeField]
-		public List<SfxCategory> sfxCategories;
+		public List<SfxCategory> SfxCategories;
 		
 		[SerializeField]
-		public List<MusicPriorityCategory> musicCategories;
+		public List<MusicPriorityCategory> MusicCategories;
 
 		public static GrygAudioSettings GetOrCreateSettings()
 		{
@@ -50,8 +51,8 @@ namespace GrygTools.Audio
 					UnityEditor.AssetDatabase.CreateFolder("Assets", "Resources");
 				}
 				settings = ScriptableObject.CreateInstance<GrygAudioSettings>();
-				settings.sfxCategories = new List<SfxCategory>();
-				settings.masterVolume = 1f;
+				settings.SfxCategories = new List<SfxCategory>();
+				settings.MasterVolume = 1f;
 				UnityEditor.AssetDatabase.CreateAsset(settings, AudioSettingsPath);
 				UnityEditor.AssetDatabase.SaveAssets();
 #endif
@@ -67,11 +68,11 @@ namespace GrygTools.Audio
 
 		public float GetCategoryVolume(int id)
 		{
-			foreach (SfxCategory sfxCategory in sfxCategories)
+			foreach (SfxCategory sfxCategory in SfxCategories)
 			{
-				if (sfxCategory.id == id)
+				if (sfxCategory.Id == id)
 				{
-					return sfxCategory.volume;
+					return sfxCategory.Volume;
 				}
 			}
 			return 1;
@@ -79,20 +80,20 @@ namespace GrygTools.Audio
 
 		public void SetCategoryVolume(int id, float volume)
 		{
-			foreach (SfxCategory sfxCategory in sfxCategories)
+			foreach (SfxCategory sfxCategory in SfxCategories)
 			{
-				if (sfxCategory.id == id)
+				if (sfxCategory.Id == id)
 				{
-					sfxCategory.volume = volume;
+					sfxCategory.Volume = volume;
 				}
 			}
 		}
 
 		public SfxCategory GetCategoryData(int id)
 		{
-			foreach (SfxCategory category in sfxCategories)
+			foreach (SfxCategory category in SfxCategories)
 			{
-				if (category.id == id)
+				if (category.Id == id)
 				{
 					return category;
 				}
@@ -110,10 +111,10 @@ namespace GrygTools.Audio
 		{
 			if (Application.isPlaying && AudioController.Instance != null)
 			{
-				AudioController.Instance.SetVolume(masterVolume);
-				foreach (SfxCategory category in sfxCategories)
+				AudioController.Instance.SetVolume(MasterVolume);
+				foreach (SfxCategory category in SfxCategories)
 				{
-					AudioController.Instance.SetSfxVolume(category.id, category.volume);
+					AudioController.Instance.SetSfxVolume(category.Id, category.Volume);
 				}
 			}
 		}
@@ -125,9 +126,9 @@ namespace GrygTools.Audio
 			List<int> musicIndecesToBeToggled = new();
 			int musicGroupCount = 0;
 			int highestId = 0;
-			for (int i = 0; i < sfxCategories.Count; i++)
+			for (int i = 0; i < SfxCategories.Count; i++)
 			{
-				if(sfxCategories[i].isMusicGroup)
+				if(SfxCategories[i].IsMusicGroup)
 				{
 					musicGroupCount++;
 					if (musicGroupCount > 1)
@@ -136,12 +137,12 @@ namespace GrygTools.Audio
 						Debug.LogError("Audio Categories list already contains a music group. Adjusting music group settings.");
 					}
 				}
-				if (!ids.Add(sfxCategories[i].id))
+				if (!ids.Add(SfxCategories[i].Id))
 				{
-					Debug.LogError($"Audio Categories list already contains ID {sfxCategories[i].id}. Adjusting Ids.");
+					Debug.LogError($"Audio Categories list already contains ID {SfxCategories[i].Id}. Adjusting Ids.");
 					sfxIndecesToBeRemoved.Add(i);
 				}
-				highestId = Math.Max(highestId, sfxCategories[i].id);
+				highestId = Math.Max(highestId, SfxCategories[i].Id);
 			}
 
 			if (musicGroupCount < 1)
@@ -152,12 +153,12 @@ namespace GrygTools.Audio
 			for(int i = 0; i < sfxIndecesToBeRemoved.Count; i++)
 			{
 				highestId++;
-				sfxCategories[sfxIndecesToBeRemoved[i]].id = highestId;
+				SfxCategories[sfxIndecesToBeRemoved[i]].Id = highestId;
 			}
 
 			for (int i = 0; i < musicIndecesToBeToggled.Count; i++)
 			{
-				sfxCategories[musicIndecesToBeToggled[i]].isMusicGroup = false;
+				SfxCategories[musicIndecesToBeToggled[i]].IsMusicGroup = false;
 			}
 			
 			if (sfxIndecesToBeRemoved.Count > 0 || musicIndecesToBeToggled.Count > 0)
@@ -171,20 +172,20 @@ namespace GrygTools.Audio
 			HashSet<int> ids = new();
 			List<int> musicIndecesToBeRemoved = new();
 			int highestId = 0;
-			for (int i = 0; i < musicCategories.Count; i++)
+			for (int i = 0; i < MusicCategories.Count; i++)
 			{
-				if (!ids.Add(musicCategories[i].priority))
+				if (!ids.Add(MusicCategories[i].Priority))
 				{
-					Debug.LogError($"Audio Categories list already contains ID {musicCategories[i].priority}. Adjusting Ids.");
+					Debug.LogError($"Audio Categories list already contains ID {MusicCategories[i].Priority}. Adjusting Ids.");
 					musicIndecesToBeRemoved.Add(i);
 				}
-				highestId = Math.Max(highestId, musicCategories[i].priority);
+				highestId = Math.Max(highestId, MusicCategories[i].Priority);
 			}
 
 			for(int i = 0; i < musicIndecesToBeRemoved.Count; i++)
 			{
 				highestId++;
-				musicCategories[musicIndecesToBeRemoved[i]].priority = highestId;
+				MusicCategories[musicIndecesToBeRemoved[i]].Priority = highestId;
 			}
 			
 			if (musicIndecesToBeRemoved.Count > 0)

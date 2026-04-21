@@ -1,6 +1,7 @@
 ﻿using GrygToolsUtils;
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace GrygTools.Audio
 {
@@ -8,40 +9,40 @@ namespace GrygTools.Audio
 	public class SfxConfig 
 	{
 		[SerializeField]
-		private string sfxName = string.Empty;
-		public string SfxName => sfxName;
+		private string m_SfxName = string.Empty;
+		public string SfxName => m_SfxName;
 
 		[SerializeField]
 		[SfxCategory]
-		private int sfxCategory = 1;
-		public int SfxCategory => sfxCategory;
+		private int m_SfxCategory = 1;
+		public int SfxCategory => m_SfxCategory;
 
 		[SerializeField]
 		[Range(0f, 1f)]
-		private float sfxVolume = 1f;
-		public float SfxVolume => sfxVolume;
+		private float m_SfxVolume = 1f;
+		public float SfxVolume => m_SfxVolume;
 		
 		[SerializeField]
 		[Min(0)]
-		private float sfxDelay = 0;
-		public float SfxDelay => sfxDelay;
+		private float m_SfxDelay = 0;
+		public float SfxDelay => m_SfxDelay;
 		
 		[SerializeField]
-		private bool looping = false;
-		public bool Looping => looping;
+		private bool m_Looping = false;
+		public bool Looping => m_Looping;
 		
 		[SerializeField]
-		private bool forcePlay = false;
-		public bool ForcePlay => forcePlay;
+		private bool m_ForcePlay = false;
+		public bool ForcePlay => m_ForcePlay;
 		
 		[SerializeField]
 		[MinMaxRange(0.5f, 1.5f)]
-		private Vector2 pitchRandomization = new Vector2(1, 1);
-		public Vector2 PitchRandomization => pitchRandomization;
+		private Vector2 m_PitchRandomization = new Vector2(1, 1);
+		public Vector2 PitchRandomization => m_PitchRandomization;
 
 		public bool IsSet()
 		{
-			return !string.IsNullOrEmpty(sfxName);
+			return !string.IsNullOrEmpty(m_SfxName);
 		}
 
 		public void PlaySfx(GameObject sourceObject)
@@ -60,14 +61,14 @@ namespace GrygTools.Audio
 
 		public SfxConfig(SfxConfig source)
 		{
-			sfxName = source.sfxName;
-			sfxCategory = source.sfxCategory;
-			sfxVolume = source.sfxVolume;
-			sfxDelay = source.sfxDelay;
-			looping = source.looping;
-			forcePlay = source.forcePlay;
-			pitchRandomization = source.pitchRandomization;
-			pitchRandomization = source.pitchRandomization;
+			m_SfxName = source.m_SfxName;
+			m_SfxCategory = source.m_SfxCategory;
+			m_SfxVolume = source.m_SfxVolume;
+			m_SfxDelay = source.m_SfxDelay;
+			m_Looping = source.m_Looping;
+			m_ForcePlay = source.m_ForcePlay;
+			m_PitchRandomization = source.m_PitchRandomization;
+			m_PitchRandomization = source.m_PitchRandomization;
 		}
 	}
 }

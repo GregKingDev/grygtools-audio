@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace GrygTools.Audio
 {
@@ -8,17 +9,21 @@ namespace GrygTools.Audio
 	public class AnimationSfx
 	{
 		[SerializeField]
-		public string eventName;
+		private string m_EventName;
+		public string EventName => m_EventName;
+		
 		[SerializeField]
-		public SfxConfig sfxConfig;
+		private SfxConfig m_SfxConfig;
+		public SfxConfig SfxConfig => m_SfxConfig;
 	}
 	
 	public class AudioAnimationEventHandler : MonoBehaviour
 	{
 		[SerializeField]
-		List<AnimationSfx> sfxConfigs = new List<AnimationSfx>();
+		private List<AnimationSfx> m_SfxConfigs = new List<AnimationSfx>();
+		public List<AnimationSfx> SfxConfigs => m_SfxConfigs;
 		
-		private Dictionary<string, SfxConfig> sfxConfigLookup = new Dictionary<string, SfxConfig>();
+		private Dictionary<string, SfxConfig> m_SfxConfigLookup = new Dictionary<string, SfxConfig>();
 
 		private void Awake()
 		{
@@ -27,17 +32,17 @@ namespace GrygTools.Audio
 
 		public void PlayAudioClip(string eventName)
 		{
-			AudioController.Instance.PlaySfx(sfxConfigLookup[eventName], gameObject);
+			AudioController.Instance.PlaySfx(m_SfxConfigLookup[eventName], gameObject);
 		}
 		
 		private void BuildLookup()
 		{
-			sfxConfigLookup.Clear();
-			foreach (AnimationSfx animationSfx in sfxConfigs)
+			m_SfxConfigLookup.Clear();
+			foreach (AnimationSfx animationSfx in m_SfxConfigs)
 			{
-				if (animationSfx.sfxConfig != null && !string.IsNullOrEmpty(animationSfx.eventName))
+				if (animationSfx.SfxConfig != null && !string.IsNullOrEmpty(animationSfx.EventName))
 				{
-					sfxConfigLookup[animationSfx.eventName] = animationSfx.sfxConfig;
+					m_SfxConfigLookup[animationSfx.EventName] = animationSfx.SfxConfig;
 				}
 			}
 		}

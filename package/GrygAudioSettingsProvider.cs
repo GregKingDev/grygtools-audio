@@ -7,7 +7,7 @@ namespace GrygTools.Audio
 {
 	public class GrygAudioSettingsProvider : SettingsProvider
 	{
-		private SerializedObject customSettings;
+		private SerializedObject m_CustomSettings;
 
 		public GrygAudioSettingsProvider(string path, SettingsScope scope = SettingsScope.Project)
 			: base(path, scope)
@@ -16,28 +16,28 @@ namespace GrygTools.Audio
 
 		public override void OnActivate(string searchContext, VisualElement rootElement)
 		{
-			customSettings = GrygAudioSettings.GetSerializedSettings();
+			m_CustomSettings = GrygAudioSettings.GetSerializedSettings();
 		}
 
 		public override void OnGUI(string searchContext)
 		{
-			EditorGUILayout.PropertyField(customSettings.FindProperty("masterVolume"));
+			EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("MasterVolume"));
 			
-			EditorGUILayout.PropertyField(customSettings.FindProperty("sfxCategories"));
+			EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("SfxCategories"));
 			
-			if (GUILayout.Button("Validate") && (customSettings.targetObject is GrygAudioSettings settings))
+			if (GUILayout.Button("Validate") && (m_CustomSettings.targetObject is GrygAudioSettings settings))
 			{
 				settings.RunSfxValidation();
 			}
 			
-			EditorGUILayout.PropertyField(customSettings.FindProperty("musicCategories"));
+			EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("MusicCategories"));
 			
-			if (GUILayout.Button("Validate") && (customSettings.targetObject is GrygAudioSettings musicSettings))
+			if (GUILayout.Button("Validate") && (m_CustomSettings.targetObject is GrygAudioSettings musicSettings))
 			{
 				musicSettings.RunMusicValidation();
 			}
 			
-			customSettings.ApplyModifiedPropertiesWithoutUndo();
+			m_CustomSettings.ApplyModifiedPropertiesWithoutUndo();
 		}
 
 		[SettingsProvider]
