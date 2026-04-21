@@ -34,5 +34,10 @@ namespace GrygTools.Audio
 		[Min(0f)]
 		private float m_MinTimeBetweenPlays = 0.01f;
 		public float MinTimeBetweenPlays => m_MinTimeBetweenPlays;
+		
+		[SerializeField]
+		[Min(1f)]
+		private int m_Weight = 1;
+		public int Weight => m_Weight;
 	}
 }

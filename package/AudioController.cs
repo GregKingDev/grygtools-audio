@@ -38,8 +38,9 @@ namespace GrygTools.Audio
 
 		private readonly Dictionary<int, AudioMixerGroup> m_SfxCategoryToGroup = new();
 		
-		private readonly Dictionary<string, List<AudioClip>> m_ClipsListDictionary =
-			new Dictionary<string, List<AudioClip>>();
+		private readonly Dictionary<string, ClipLibrary> m_ClipsListDictionary =
+			new Dictionary<string, ClipLibrary>();
+		
 		
 		private readonly Dictionary<Tuple<string, int>, SfxComponent> m_ActiveSfxDictionary =
 			new Dictionary<Tuple<string, int>, SfxComponent>();
@@ -155,9 +156,9 @@ namespace GrygTools.Audio
 		internal bool TryGetClipFromName(string key, out AudioClip clip)
 		{
 			clip = null;
-			if (m_ClipsListDictionary.TryGetValue(key, out List<AudioClip> clipList))
+			if (m_ClipsListDictionary.TryGetValue(key, out ClipLibrary clipLibrary))
 			{
-				clip = clipList[Random.Range(0, clipList.Count)];
+				clip = clipLibrary.GetClip();
 			}
 			
 			if (clip != null)
@@ -354,14 +355,12 @@ namespace GrygTools.Audio
 		
 				loadedClip.LoadAudioData();
 		
-				if (m_ClipsListDictionary.ContainsKey(entry.Key))
+				if (!m_ClipsListDictionary.TryGetValue(entry.Key, out ClipLibrary clipLibrary))
 				{
-					m_ClipsListDictionary[entry.Key].Add(loadedClip);
+					clipLibrary = new();
+					m_ClipsListDictionary[entry.Key] = clipLibrary;
 				}
-				else
-				{
-					m_ClipsListDictionary[entry.Key] = new List<AudioClip>(){loadedClip};
-				}
+				clipLibrary.AddClip(entry.Weight, loadedClip);
 			}
 		}
 
@@ -407,14 +406,12 @@ namespace GrygTools.Audio
 			
 				task.Result.LoadAudioData();
 			
-				if (m_ClipsListDictionary.TryGetValue(entry.Key, out List<AudioClip> value))
+				if (!m_ClipsListDictionary.TryGetValue(entry.Key, out ClipLibrary clipLibrary))
 				{
-					value.Add(task.Result);
+					clipLibrary = new();
+					m_ClipsListDictionary[entry.Key] = clipLibrary;
 				}
-				else
-				{
-					m_ClipsListDictionary[entry.Key] = new List<AudioClip>(){task.Result};
-				}
+				clipLibrary.AddClip(entry.Weight, task.Result);
 			}
 		}
 		
@@ -435,9 +432,9 @@ namespace GrygTools.Audio
 		{
 			foreach (AudioClipConfigEntry entry in entries)
 			{
-				if (m_ClipsListDictionary.TryGetValue(entry.Key, out List<AudioClip> clipList))
+				if (m_ClipsListDictionary.TryGetValue(entry.Key, out ClipLibrary clipLibrary))
 				{
-					if (clipList != null)
+					if (clipLibrary != null)
 					{
 						if (entry.Reference != null)
 						{
@@ -460,7 +457,7 @@ namespace GrygTools.Audio
 							}
 						}
 
-						if (clipList.Count <= 0)
+						if (clipLibrary.Count <= 0)
 						{
 							m_ClipsListDictionary.Remove(entry.Key);
 						}
