@@ -1,6 +1,6 @@
 {
   "name": "com.grygtools.audio",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "displayName": "GrygTools-Audio",
   "description": "Simple audio package",
   "unity": "2020.3",

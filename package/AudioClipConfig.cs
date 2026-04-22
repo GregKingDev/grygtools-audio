@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
-using UnityEngine.Serialization;
+using UnityEngine.Events;
 
 namespace GrygTools.Audio
 {
@@ -12,6 +12,13 @@ namespace GrygTools.Audio
 		[SerializeField]
 		private List<AudioClipConfigEntry> m_Entries = new List<AudioClipConfigEntry>();
 		public List<AudioClipConfigEntry> Entries => m_Entries;
+		
+#if UNITY_EDITOR
+		private void OnValidate()
+		{
+			AudioKeysUtility.SetKeysDirty();
+		}
+#endif
 	}
 	
 	[Serializable]

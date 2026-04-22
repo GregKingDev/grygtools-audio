@@ -4,7 +4,6 @@
     "GrygTools.Audio.Runtime",
     "Unity.TextMeshPro",
     "GrygTools.Utils.Runtime",
-    "GrygTools.Utils.Editor",
     "GrygToolsUtils.Editor"
   ],
   "includePlatforms": [

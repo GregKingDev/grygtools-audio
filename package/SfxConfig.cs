@@ -1,7 +1,6 @@
 ﻿using GrygToolsUtils;
 using System;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace GrygTools.Audio
 {
@@ -9,6 +8,7 @@ namespace GrygTools.Audio
 	public class SfxConfig 
 	{
 		[SerializeField]
+		[SfxKeyProperty]
 		private string m_SfxName = string.Empty;
 		public string SfxName => m_SfxName;
 
@@ -47,12 +47,18 @@ namespace GrygTools.Audio
 
 		public void PlaySfx(GameObject sourceObject)
 		{
-			AudioController.Instance.PlaySfx(this, sourceObject);
+			if (!string.IsNullOrEmpty(m_SfxName))
+			{
+				AudioController.Instance.PlaySfx(this, ForcePlay ? null : sourceObject);
+			}
 		}
 
 		public void ForcePlaySfx()
 		{
-			AudioController.Instance.PlaySfx(this, null);
+			if (!string.IsNullOrEmpty(m_SfxName))
+			{
+				AudioController.Instance.PlaySfx(this, null);
+			}
 		}
 
 		public SfxConfig()

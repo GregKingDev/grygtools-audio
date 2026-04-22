@@ -1,7 +1,4 @@
-﻿using GrygTools;
-using GrygTools.Audio;
-using GrygToolsUtils;
-using System.Collections.Generic;
+﻿using GrygToolsUtils;
 using UnityEditor;
 
 namespace GrygTools.Audio
@@ -52,8 +49,8 @@ namespace GrygTools.Audio
 				optionsList.Clear();
 				optionsList.AddRange(optionsDictionary.Values);
 				optionsList.Sort((a, b) => a.Id < b.Id ? -1 : 1);
-				List<string> sfxCategoryNames = new List<string>();
 				nameDictionary.Clear();
+				
 				foreach (SfxCategory category in optionsList)
 				{
 					nameDictionary.Add(category.Id, category.Name);
