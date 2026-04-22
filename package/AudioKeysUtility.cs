@@ -9,16 +9,22 @@ namespace GrygTools.Audio
 	{
 		public static IReadOnlyCollection<string> AudioClipKeys => s_AudioClipKeys;
 		private static HashSet<string> s_AudioClipKeys = new HashSet<string>();
-		public static bool isDirty = true;
+		private static bool m_IsDirty = true;
 		
 		public static void SetKeysDirty()
 		{
-			isDirty = true;
+			m_IsDirty = true;
 		}
 		
-		public static void RefreshClipKeys()
+		[MenuItem("GrygTools/Audio/Check Clip Configs")]
+		public static void ValidateClipConfigs()
 		{
-			if (!isDirty)
+			RefreshClipKeys(true);
+		}
+		
+		public static void RefreshClipKeys(bool useLogging = false)
+		{
+			if (!m_IsDirty)
 			{
 				return;
 			}
@@ -29,7 +35,10 @@ namespace GrygTools.Audio
 			
 			void ColorLog(object message, UnityEngine.Object context = null)
 			{
-				Debug.Log($"<color=orange>{message}</color>", context);
+				if (useLogging)
+				{
+					Debug.Log($"<color=orange>{message}</color>", context);
+				}
 			}
 			s_AudioClipKeys.Clear();
 			foreach (string audioConfigGuid in audioConfigGuids)
@@ -70,7 +79,7 @@ namespace GrygTools.Audio
 				}
 			}
 			ColorLog($"{audioConfigGuids.Length} Configs checked. Found {problemCount} problems across {problemConfigCount} files");
-			isDirty = false;
+			m_IsDirty = false;
 		}
 	}
 }
