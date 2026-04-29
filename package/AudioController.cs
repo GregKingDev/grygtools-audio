@@ -93,7 +93,7 @@ namespace GrygTools.Audio
 
 		protected override void Init()
 		{
-			foreach (SfxCategory category in AudioSettings.SfxCategories)
+			foreach (SfxCategorySettings category in AudioSettings.SfxCategories)
 			{
 				AudioMixerGroup[] groups = MasterMixer.FindMatchingGroups(category.TargetGroupName);
 				if (category.IsMusicGroup)
@@ -147,9 +147,9 @@ namespace GrygTools.Audio
 		private void LoadVolumeFromSettings()
 		{
 			SetVolume(AudioSettings.MasterVolume);
-			foreach (SfxCategory sfxCategory in AudioSettings.SfxCategories)
+			foreach (SfxCategorySettings sfxCategory in AudioSettings.SfxCategories)
 			{
-				SetSfxVolume(sfxCategory.Id, sfxCategory.Volume);
+				SetSfxVolume(sfxCategory.Id, AudioSettings.GetCategoryVolume(sfxCategory.Id));
 			}
 		}
 
@@ -483,7 +483,7 @@ namespace GrygTools.Audio
 			float adjustedVolume = m_IsSfxMuted ? 0 : Mathf.Clamp(newVolume, VolumeZeroEquivalent, MaxSfxVolume);
 			
 			AudioSettings.SetCategoryVolume(category, newVolume);
-			SfxCategory data = AudioSettings.GetCategoryData(category);
+			SfxCategorySettings data = AudioSettings.GetCategoryData(category);
 			if (data != null)
 			{
 				MasterMixer.SetFloat(data.TargetGroupName, Mathf.Log(adjustedVolume) * VolumeLogScalar);

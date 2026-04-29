@@ -4,9 +4,9 @@ using UnityEditor;
 namespace GrygTools.Audio
 {
 	[CustomPropertyDrawer(typeof(SfxCategoryAttribute))]
-	public class SfxCategoryDrawer : SearchablePropertyDrawerBase<SfxCategory>
+	public class SfxCategoryDrawer : SearchablePropertyDrawerBase<SfxCategorySettings>
 	{
-		protected override void OnSelect(SerializedProperty property, SfxCategory obj)
+		protected override void OnSelect(SerializedProperty property, SfxCategorySettings obj)
 		{
 			property.intValue = obj.Id;
 		}
@@ -22,7 +22,7 @@ namespace GrygTools.Audio
 			return false;
 		}
 
-		protected override bool IndexComparison(SerializedProperty property, SfxCategory obj)
+		protected override bool IndexComparison(SerializedProperty property, SfxCategorySettings obj)
 		{
 			return obj.Id == property.intValue;
 		}
@@ -41,7 +41,7 @@ namespace GrygTools.Audio
 			if (nameDictionary.Count <= 0 ||  GrygAudioSettings.GetOrCreateSettings().SfxCategories.Count != optionsList.Count)
 			{
 				optionsDictionary.Clear();
-				foreach (SfxCategory category in GrygAudioSettings.GetOrCreateSettings().SfxCategories)
+				foreach (SfxCategorySettings category in GrygAudioSettings.GetOrCreateSettings().SfxCategories)
 				{
 					optionsDictionary.Add(category.Id, category);
 				}
@@ -51,7 +51,7 @@ namespace GrygTools.Audio
 				optionsList.Sort((a, b) => a.Id < b.Id ? -1 : 1);
 				nameDictionary.Clear();
 				
-				foreach (SfxCategory category in optionsList)
+				foreach (SfxCategorySettings category in optionsList)
 				{
 					nameDictionary.Add(category.Id, category.Name);
 				}
