@@ -8,6 +8,18 @@ namespace GrygTools.Audio
 	public class GrygAudioSettingsProvider : SettingsProvider
 	{
 		private SerializedObject m_CustomSettings;
+		
+		private float sliderValue = 1f;
+		
+		private GrygAudioSettings m_AudioSettings;
+		private GrygAudioSettings AudioSettings
+		{
+			get
+			{
+				m_AudioSettings ??= GrygAudioSettings.GetOrCreateSettings();
+				return m_AudioSettings;
+			}
+		}
 
 		public GrygAudioSettingsProvider(string path, SettingsScope scope = SettingsScope.Project)
 			: base(path, scope)
@@ -21,7 +33,37 @@ namespace GrygTools.Audio
 
 		public override void OnGUI(string searchContext)
 		{
-			EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("MasterVolume"));
+			// EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("MasterVolume"));
+			
+			float oldMasterVolume = AudioSettings.GetMasterVolume();
+			sliderValue = EditorGUILayout.Slider(oldMasterVolume, 0, 1);
+			
+			if (!Mathf.Approximately(sliderValue, oldMasterVolume))
+			{
+				if (Application.isPlaying)
+				{
+					AudioController.Instance.SetMasterVolume(sliderValue);
+				}
+				else
+				{
+					AudioSettings.SetMasterVolume(sliderValue);
+				}
+			}
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			
 			EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("SfxCategories"));
 			

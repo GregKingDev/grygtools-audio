@@ -36,7 +36,7 @@ namespace GrygTools.Audio
 		public bool ForcePlay => m_ForcePlay;
 		
 		[SerializeField]
-		[MinAndMaxRangeVec2(0.5f, 1.5f)]
+		[MinMaxRange(0.5f, 1.5f)]
 		private Vector2 m_PitchRandomization = new Vector2(1, 1);
 		public Vector2 PitchRandomization => m_PitchRandomization;
 

@@ -13,8 +13,6 @@ namespace GrygTools.Audio
 		public string Name;
 		public string TargetGroupName;
 		public bool IsMusicGroup;
-		// [Range(0f, 1f)]
-		// public float Volume = 1;
 	}
 
 	[Serializable]
@@ -37,12 +35,10 @@ namespace GrygTools.Audio
 	{
 		private const string MuteKey = "Mute";
 		private const string VolumeKey = "Volume";
+		private const string MasterMuteKey = "MasterMute";
+		private const string MasterVolumeKey = "MasterVolume";
 		
 		public const string AudioSettingsPath = "Assets/Resources/AudioSettings.asset";
-
-		[SerializeField]
-		[Range(0f, 1f)]
-		public float MasterVolume = 1;
 
 		[SerializeField]
 		public List<SfxCategorySettings> SfxCategories;
@@ -62,7 +58,7 @@ namespace GrygTools.Audio
 				}
 				settings = ScriptableObject.CreateInstance<GrygAudioSettings>();
 				settings.SfxCategories = new List<SfxCategorySettings>();
-				settings.MasterVolume = 1f;
+				
 				UnityEditor.AssetDatabase.CreateAsset(settings, AudioSettingsPath);
 				UnityEditor.AssetDatabase.SaveAssets();
 #endif
@@ -76,6 +72,16 @@ namespace GrygTools.Audio
 			return settings;
 		}
 
+		public float GetMasterVolume()
+		{
+			return PlayerPrefs.GetFloat(MasterVolumeKey, 1f);
+		}
+
+		public void SetMasterVolume(float volume)
+		{
+			PlayerPrefs.SetFloat(MasterVolumeKey, volume);
+		}
+		
 		public float GetCategoryVolume(int id)
 		{
 			foreach (SfxCategorySettings sfxCategory in SfxCategories)
@@ -121,7 +127,7 @@ namespace GrygTools.Audio
 		{
 			if (Application.isPlaying && AudioController.Instance != null)
 			{
-				AudioController.Instance.SetVolume(MasterVolume);
+				AudioController.Instance.SetMasterVolume(GetMasterVolume());
 				foreach (SfxCategorySettings category in SfxCategories)
 				{
 					AudioController.Instance.SetSfxVolume(category.Id, PlayerPrefs.GetFloat(GetVolumeKey(category), 1f));

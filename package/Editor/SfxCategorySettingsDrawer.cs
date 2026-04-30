@@ -53,8 +53,7 @@ namespace GrygTools.Audio
 			int catId = property.FindPropertyRelative("Id").intValue;
 			float oldCatVolume = AudioSettings.GetCategoryVolume(catId);
 			runningRect = new Rect(rect.x, runningPos, rect.width, EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing);
-
-
+			
 			float originalRectWidth = rect.width;
 			runningRect.width = 100f;
 			EditorGUI.LabelField(runningRect, new GUIContent("Volume"));

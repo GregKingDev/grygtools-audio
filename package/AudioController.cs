@@ -146,7 +146,7 @@ namespace GrygTools.Audio
 
 		private void LoadVolumeFromSettings()
 		{
-			SetVolume(AudioSettings.MasterVolume);
+			SetMasterVolume(AudioSettings.GetMasterVolume());
 			foreach (SfxCategorySettings sfxCategory in AudioSettings.SfxCategories)
 			{
 				SetSfxVolume(sfxCategory.Id, AudioSettings.GetCategoryVolume(sfxCategory.Id));
@@ -466,11 +466,11 @@ namespace GrygTools.Audio
 			}
 		}
 		
-		public void SetVolume(float newVolume) 
+		public void SetMasterVolume(float newVolume) 
 		{
 			float adjustedVolume = m_IsMuted ? 0 : Mathf.Clamp(newVolume, VolumeZeroEquivalent, 1);
 			MasterMixer.SetFloat(MasterVolumeName, Mathf.Log(adjustedVolume) * VolumeLogScalar);
-			AudioSettings.MasterVolume = newVolume;
+			AudioSettings.SetMasterVolume(newVolume);
 		}
 
 		public float GetCategoryVolume(int category)
