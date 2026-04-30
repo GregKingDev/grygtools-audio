@@ -16,7 +16,7 @@ namespace GrygTools.Audio
 		internal const float MaxSfxVolume = 1f;
 		internal const float MaxMusicVolume = 1f;
 
-		internal const string MasterVolumeName = "MasterVolume";
+		internal const string MasterVolumeName = "master";
 
 		private const float VolumeLogScalar = 20f;
 		private const float VolumeZeroEquivalent = 0.00001f;
@@ -26,10 +26,6 @@ namespace GrygTools.Audio
 		public const float MinTimeSinceLastPlay = 0.01f;
 		
 		public delegate void SfxEndCallback();
-		
-		private bool m_IsMuted = false;
-
-		private bool m_IsSfxMuted = false;
 		
 		private SfxComponent m_SfxCompTemplate = null;
 		private Transform m_SfxPoolTransform = null;
@@ -466,21 +462,73 @@ namespace GrygTools.Audio
 			}
 		}
 		
+		public float GetMasterVolume()
+		{
+			return AudioSettings.GetMasterVolume();
+		}
+		
 		public void SetMasterVolume(float newVolume) 
 		{
-			float adjustedVolume = m_IsMuted ? 0 : Mathf.Clamp(newVolume, VolumeZeroEquivalent, 1);
+			float adjustedVolume = AudioSettings.GetMasterMute() ? 0.0001f : Mathf.Clamp(newVolume, VolumeZeroEquivalent, 1);
 			MasterMixer.SetFloat(MasterVolumeName, Mathf.Log(adjustedVolume) * VolumeLogScalar);
 			AudioSettings.SetMasterVolume(newVolume);
+		}
+		
+		public void SetMasterMute(bool mute)
+		{
+			AudioSettings.SetMasterMute(mute);
+			SetMasterVolume(AudioSettings.GetMasterVolume());
+		}
+
+		public void SetMuteCategory(int category, bool mute)
+		{
+			AudioSettings.SetCategoryMute(category, mute);
+			SetSfxVolume(category, AudioSettings.GetCategoryVolume(category));
 		}
 
 		public float GetCategoryVolume(int category)
 		{
 			return AudioSettings.GetCategoryVolume(category);
 		}
+
+		public void SetMusicVolume(float volume)
+		{
+			foreach (SfxCategorySettings category in AudioSettings.SfxCategories)
+			{
+				if (category.IsMusicGroup)
+				{
+					SetSfxVolume(category.Id, volume);
+				}
+			}
+		}
+		
+		public float GetMusicVolume()
+		{
+			foreach (SfxCategorySettings category in AudioSettings.SfxCategories)
+			{
+				if (category.IsMusicGroup)
+				{
+					return GetCategoryVolume(category.Id);
+				}
+			}
+
+			return 1f;
+		}
+		
+		public void SetMusicMute(bool mute)
+		{
+			foreach (SfxCategorySettings category in AudioSettings.SfxCategories)
+			{
+				if (category.IsMusicGroup)
+				{
+					SetMuteCategory(category.Id, mute);
+				}
+			}
+		}
 		
 		public void SetSfxVolume(int category, float newVolume)
 		{
-			float adjustedVolume = m_IsSfxMuted ? 0 : Mathf.Clamp(newVolume, VolumeZeroEquivalent, MaxSfxVolume);
+			float adjustedVolume = AudioSettings.GetCategoryMute(category) ? 0.00001f : Mathf.Clamp(newVolume, VolumeZeroEquivalent, MaxSfxVolume);
 			
 			AudioSettings.SetCategoryVolume(category, newVolume);
 			SfxCategorySettings data = AudioSettings.GetCategoryData(category);

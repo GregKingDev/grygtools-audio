@@ -9,7 +9,8 @@ namespace GrygTools.Audio
 	{
 		private SerializedObject m_CustomSettings;
 		
-		private float sliderValue = 1f;
+		private float m_MasterSliderValue = 1f;
+		private bool m_MasterMuteValue = false;
 		
 		private GrygAudioSettings m_AudioSettings;
 		private GrygAudioSettings AudioSettings
@@ -33,36 +34,41 @@ namespace GrygTools.Audio
 
 		public override void OnGUI(string searchContext)
 		{
-			// EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("MasterVolume"));
-			
+			// Master volume slider
+			EditorGUILayout.BeginHorizontal();
+			EditorGUILayout.LabelField("Master Volume", GUILayout.Width(100));
 			float oldMasterVolume = AudioSettings.GetMasterVolume();
-			sliderValue = EditorGUILayout.Slider(oldMasterVolume, 0, 1);
+			m_MasterSliderValue = EditorGUILayout.Slider(oldMasterVolume, 0, 1);
 			
-			if (!Mathf.Approximately(sliderValue, oldMasterVolume))
+			if (!Mathf.Approximately(m_MasterSliderValue, oldMasterVolume))
 			{
 				if (Application.isPlaying)
 				{
-					AudioController.Instance.SetMasterVolume(sliderValue);
+					AudioController.Instance.SetMasterVolume(m_MasterSliderValue);
 				}
 				else
 				{
-					AudioSettings.SetMasterVolume(sliderValue);
+					AudioSettings.SetMasterVolume(m_MasterSliderValue);
 				}
 			}
+			EditorGUILayout.EndHorizontal();
 			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
+			//Master volume mute
+			EditorGUILayout.BeginHorizontal();
+			bool oldMasterMute = AudioSettings.GetMasterMute();
+			m_MasterMuteValue = EditorGUILayout.Toggle("Master Mute", oldMasterMute);
+			if(m_MasterMuteValue != oldMasterMute)
+			{
+				if (Application.isPlaying)
+				{
+					AudioController.Instance.SetMasterMute(m_MasterMuteValue);
+				}
+				else
+				{
+					AudioSettings.SetMasterMute(m_MasterMuteValue);
+				}
+			}
+			EditorGUILayout.EndHorizontal();
 			
 			
 			EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("SfxCategories"));

@@ -82,6 +82,39 @@ namespace GrygTools.Audio
 			PlayerPrefs.SetFloat(MasterVolumeKey, volume);
 		}
 		
+		public void SetMasterMute(bool isMuted)
+		{
+			PlayerPrefs.SetInt(MasterMuteKey, isMuted ? 1 : 0);
+		}
+		
+		public bool GetMasterMute()
+		{
+			return PlayerPrefs.GetInt(MasterMuteKey, 0) == 1;
+		}
+		
+		public void SetCategoryMute(int id, bool isMuted)
+		{
+			foreach (SfxCategorySettings sfxCategory in SfxCategories)
+			{
+				if (sfxCategory.Id == id)
+				{
+					PlayerPrefs.SetInt(GetMuteKey(id), isMuted ? 1 : 0);
+				}
+			}
+		}
+		
+		public bool GetCategoryMute(int id)
+		{
+			foreach (SfxCategorySettings sfxCategory in SfxCategories)
+			{
+				if (sfxCategory.Id == id)
+				{
+					return PlayerPrefs.GetInt(GetMuteKey(id), 0) == 1;
+				}
+			}
+			return false;
+		}
+		
 		public float GetCategoryVolume(int id)
 		{
 			foreach (SfxCategorySettings sfxCategory in SfxCategories)
