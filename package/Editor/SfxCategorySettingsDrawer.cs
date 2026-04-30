@@ -6,7 +6,9 @@ namespace GrygTools.Audio
 	[CustomPropertyDrawer(typeof(SfxCategorySettings))]
 	public class SfxCategorySettingsDrawer : PropertyDrawer
 	{
-		private float sliderValue = 1f;
+		private float m_SliderValue = 1f;
+		private bool m_MuteValue = false;
+		private int m_NumberOfElements = 7;
 		
 		private GrygAudioSettings m_AudioSettings;
 		private GrygAudioSettings AudioSettings
@@ -20,7 +22,7 @@ namespace GrygTools.Audio
 		
 		public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
 		{
-			return EditorGUIUtility.singleLineHeight * 6 + EditorGUIUtility.standardVerticalSpacing*6;
+			return EditorGUIUtility.singleLineHeight * m_NumberOfElements + EditorGUIUtility.standardVerticalSpacing * m_NumberOfElements;
 		}
 
 		public override void OnGUI(Rect rect, SerializedProperty property, GUIContent label)
@@ -43,11 +45,13 @@ namespace GrygTools.Audio
 			EditorGUI.PropertyField(runningRect, property.FindPropertyRelative("TargetGroupName"));
 			EditorGUI.EndProperty();
 
+			GUI.enabled = !Application.isPlaying;
 			runningPos += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
 			EditorGUI.BeginProperty(rect, label, property.FindPropertyRelative("IsMusicGroup"));
 			runningRect = new Rect(rect.x, runningPos, rect.width, EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing);
 			EditorGUI.PropertyField(runningRect, property.FindPropertyRelative("IsMusicGroup"));
 			EditorGUI.EndProperty();
+			GUI.enabled = true;
 			
 			runningPos += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
 			int catId = property.FindPropertyRelative("Id").intValue;
@@ -58,16 +62,35 @@ namespace GrygTools.Audio
 			runningRect.width = 100f;
 			EditorGUI.LabelField(runningRect, new GUIContent("Volume"));
 			runningRect = new Rect(runningRect.x + 100, runningPos, originalRectWidth - 100, EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing);
-			sliderValue = EditorGUI.Slider(runningRect, oldCatVolume, 0f, 1f);
-			if (!Mathf.Approximately(sliderValue, oldCatVolume))
+			m_SliderValue = EditorGUI.Slider(runningRect, oldCatVolume, 0f, 1f);
+			if (!Mathf.Approximately(m_SliderValue, oldCatVolume))
 			{
 				if (Application.isPlaying)
 				{
-					AudioController.Instance.SetSfxVolume(catId, sliderValue);
+					AudioController.Instance.SetSfxVolume(catId, m_SliderValue);
 				}
 				else
 				{
-					AudioSettings.SetCategoryVolume(catId, sliderValue);
+					AudioSettings.SetCategoryVolume(catId, m_SliderValue);
+				}
+			}
+			
+			
+			runningPos += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
+			runningRect = new Rect(runningRect.x - 100, runningPos, originalRectWidth, EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing);
+			EditorGUI.LabelField(runningRect, new GUIContent("Mute"));
+			runningRect = new Rect(rect.x + 100, runningPos, rect.width, EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing);
+			bool oldMuteValue = AudioSettings.GetCategoryMute(catId);
+			m_MuteValue = EditorGUI.Toggle(runningRect, oldMuteValue);
+			if (m_MuteValue != oldMuteValue)
+			{
+				if (Application.isPlaying)
+				{
+					AudioController.Instance.SetCategoryMute(catId, m_MuteValue);
+				}
+				else
+				{
+					AudioSettings.SetCategoryMute(catId, m_MuteValue);
 				}
 			}
 		}

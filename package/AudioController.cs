@@ -480,7 +480,7 @@ namespace GrygTools.Audio
 			SetMasterVolume(AudioSettings.GetMasterVolume());
 		}
 
-		public void SetMuteCategory(int category, bool mute)
+		public void SetCategoryMute(int category, bool mute)
 		{
 			AudioSettings.SetCategoryMute(category, mute);
 			SetSfxVolume(category, AudioSettings.GetCategoryVolume(category));
@@ -521,7 +521,7 @@ namespace GrygTools.Audio
 			{
 				if (category.IsMusicGroup)
 				{
-					SetMuteCategory(category.Id, mute);
+					SetCategoryMute(category.Id, mute);
 				}
 			}
 		}
