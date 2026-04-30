@@ -1,12 +1,14 @@
 ﻿using GrygToolsUtils;
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
+[assembly: InternalsVisibleTo("GrygToolsAudio.Editor")]
 namespace GrygTools.Audio
 {
 	[Serializable]
-	public class SfxCategorySettings
+	internal class SfxCategorySettings
 	{
 		[ReadOnly]
 		public int Id;
@@ -16,7 +18,7 @@ namespace GrygTools.Audio
 	}
 
 	[Serializable]
-	public class VolumeSettings
+	internal class VolumeSettings
 	{
 		[Range(0f, 1f)]
 		public float Volume;
@@ -24,14 +26,14 @@ namespace GrygTools.Audio
 	}
 	
 	[Serializable]
-	public class MusicPriorityCategory
+	internal class MusicPriorityCategory
 	{
 		[ReadOnly][Tooltip("Higher values take precedence in playing, if 0 is playing and 1 is requested 0 will be stopped and 1 started. Upon stopping 1 0 will resume")]
 		public int Priority;
 		public string Name;
 	}
 	
-	public class GrygAudioSettings : ScriptableObject
+	internal class GrygAudioSettings : ScriptableObject
 	{
 		private const string MuteKey = "Mute";
 		private const string VolumeKey = "Volume";

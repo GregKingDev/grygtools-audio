@@ -4,7 +4,7 @@ using UnityEditor;
 namespace GrygTools.Audio
 {
 	[CustomPropertyDrawer(typeof(SfxCategoryAttribute))]
-	public class SfxCategoryDrawer : SearchablePropertyDrawerBase<SfxCategorySettings>
+	internal class SfxCategoryDrawer : SearchablePropertyDrawerBase<SfxCategorySettings>
 	{
 		protected override void OnSelect(SerializedProperty property, SfxCategorySettings obj)
 		{
