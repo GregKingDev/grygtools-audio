@@ -8,7 +8,7 @@ namespace GrygTools.Audio
 	{
 		private float m_SliderValue = 1f;
 		private bool m_MuteValue = false;
-		private int m_NumberOfElements = 7;
+		private int m_NumberOfElements = 9;
 		
 		private GrygAudioSettings m_AudioSettings;
 		private GrygAudioSettings AudioSettings
@@ -32,19 +32,25 @@ namespace GrygTools.Audio
 			EditorGUI.BeginProperty(runningRect, label, property.FindPropertyRelative("Id"));
 			EditorGUI.PropertyField(runningRect, property.FindPropertyRelative("Id"));
 			EditorGUI.EndProperty();
+			
+			runningPos += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
+			EditorGUI.BeginProperty(rect, label, property.FindPropertyRelative("MixerGroup"));
+			runningRect = new Rect(rect.x, runningPos, rect.width, EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing);
+			EditorGUI.PropertyField(runningRect, property.FindPropertyRelative("MixerGroup"));
+			EditorGUI.EndProperty();
 
 			runningPos += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
 			EditorGUI.BeginProperty(rect, label, property.FindPropertyRelative("Name"));
 			runningRect = new Rect(rect.x, runningPos, rect.width, EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing);
 			EditorGUI.PropertyField(runningRect, property.FindPropertyRelative("Name"));
 			EditorGUI.EndProperty();
-
+			
 			runningPos += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
-			EditorGUI.BeginProperty(rect, label, property.FindPropertyRelative("TargetGroupName"));
+			EditorGUI.BeginProperty(rect, label, property.FindPropertyRelative("VolumeParameterName"));
 			runningRect = new Rect(rect.x, runningPos, rect.width, EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing);
-			EditorGUI.PropertyField(runningRect, property.FindPropertyRelative("TargetGroupName"));
+			EditorGUI.PropertyField(runningRect, property.FindPropertyRelative("VolumeParameterName"));
 			EditorGUI.EndProperty();
-
+			
 			GUI.enabled = !Application.isPlaying;
 			runningPos += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
 			EditorGUI.BeginProperty(rect, label, property.FindPropertyRelative("IsMusicGroup"));
@@ -74,7 +80,6 @@ namespace GrygTools.Audio
 					AudioSettings.SetCategoryVolume(catId, m_SliderValue);
 				}
 			}
-			
 			
 			runningPos += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
 			runningRect = new Rect(runningRect.x - 100, runningPos, originalRectWidth, EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing);

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using UnityEngine;
+using UnityEngine.Audio;
 
 [assembly: InternalsVisibleTo("GrygToolsAudio.Editor")]
 namespace GrygTools.Audio
@@ -13,7 +14,8 @@ namespace GrygTools.Audio
 		[ReadOnly]
 		public int Id;
 		public string Name;
-		public string TargetGroupName;
+		public string VolumeParameterName;
+		public AudioMixerGroup MixerGroup;
 		public bool IsMusicGroup;
 	}
 
@@ -42,6 +44,12 @@ namespace GrygTools.Audio
 		
 		public const string AudioSettingsPath = "Assets/Resources/AudioSettings.asset";
 
+		[SerializeField]
+		public AudioMixer Mixer;
+		
+		[SerializeField]
+		public string MasterVolumeParameterName = "";
+		
 		[SerializeField]
 		public List<SfxCategorySettings> SfxCategories;
 		

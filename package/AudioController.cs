@@ -16,8 +16,6 @@ namespace GrygTools.Audio
 		internal const float MaxSfxVolume = 1f;
 		internal const float MaxMusicVolume = 1f;
 
-		internal const string MasterVolumeName = "master";
-
 		private const float VolumeLogScalar = 20f;
 		private const float VolumeZeroEquivalent = 0.00001f;
 
@@ -66,7 +64,7 @@ namespace GrygTools.Audio
 		{
 			get
 			{
-				m_MasterMixer ??= (AudioMixer)Resources.Load("MasterMixer");
+				m_MasterMixer ??= AudioSettings.Mixer;
 				return m_MasterMixer;
 			}
 		}
@@ -91,14 +89,13 @@ namespace GrygTools.Audio
 		{
 			foreach (SfxCategorySettings category in AudioSettings.SfxCategories)
 			{
-				AudioMixerGroup[] groups = MasterMixer.FindMatchingGroups(category.TargetGroupName);
 				if (category.IsMusicGroup)
 				{
-					m_MusicGroup = groups[0];
+					m_MusicGroup = category.MixerGroup;
 				}
 				else
 				{
-					m_SfxCategoryToGroup.Add(category.Id, groups[0]);
+					m_SfxCategoryToGroup.Add(category.Id, category.MixerGroup);
 				}
 			}
 			
@@ -470,7 +467,7 @@ namespace GrygTools.Audio
 		public void SetMasterVolume(float newVolume) 
 		{
 			float adjustedVolume = AudioSettings.GetMasterMute() ? 0.0001f : Mathf.Clamp(newVolume, VolumeZeroEquivalent, 1);
-			MasterMixer.SetFloat(MasterVolumeName, Mathf.Log(adjustedVolume) * VolumeLogScalar);
+			MasterMixer.SetFloat(AudioSettings.MasterVolumeParameterName, Mathf.Log(adjustedVolume) * VolumeLogScalar);
 			AudioSettings.SetMasterVolume(newVolume);
 		}
 		
@@ -534,7 +531,7 @@ namespace GrygTools.Audio
 			SfxCategorySettings data = AudioSettings.GetCategoryData(category);
 			if (data != null)
 			{
-				MasterMixer.SetFloat(data.TargetGroupName, Mathf.Log(adjustedVolume) * VolumeLogScalar);
+				MasterMixer.SetFloat(data.VolumeParameterName, Mathf.Log(adjustedVolume) * VolumeLogScalar);
 			}
 		}
 		

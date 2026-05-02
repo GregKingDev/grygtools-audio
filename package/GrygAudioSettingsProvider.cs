@@ -35,6 +35,8 @@ namespace GrygTools.Audio
 		public override void OnGUI(string searchContext)
 		{
 			// Master volume slider
+			EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("Mixer"));
+			EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("MasterVolumeParameterName"));
 			EditorGUILayout.BeginHorizontal();
 			EditorGUILayout.LabelField("Master Volume", GUILayout.Width(100));
 			float oldMasterVolume = AudioSettings.GetMasterVolume();
