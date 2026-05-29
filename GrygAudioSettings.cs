@@ -159,25 +159,7 @@ namespace GrygTools.Audio
 			}
 			return null;
 		}
-		
-#if UNITY_EDITOR
-		public static UnityEditor.SerializedObject GetSerializedSettings()
-		{
-			return new UnityEditor.SerializedObject(GetOrCreateSettings());
-		}
 
-		public void OnValidate()
-		{
-			if (Application.isPlaying && AudioController.Instance != null)
-			{
-				AudioController.Instance.SetMasterVolume(GetMasterVolume());
-				foreach (SfxCategorySettings category in SfxCategories)
-				{
-					AudioController.Instance.SetSfxVolume(category.Id, PlayerPrefs.GetFloat(GetVolumeKey(category), 1f));
-				}
-			}
-		}
-		
 		private string GetVolumeKey(int id)
 		{
 			return $"{VolumeKey}{id.ToString()}";
@@ -196,6 +178,24 @@ namespace GrygTools.Audio
 		private string GetMuteKey(SfxCategorySettings categorySettings)
 		{
 			return $"{MuteKey}{categorySettings.Id.ToString()}";
+		}
+		
+#if UNITY_EDITOR
+		public static UnityEditor.SerializedObject GetSerializedSettings()
+		{
+			return new UnityEditor.SerializedObject(GetOrCreateSettings());
+		}
+
+		public void OnValidate()
+		{
+			if (Application.isPlaying && AudioController.Instance != null)
+			{
+				AudioController.Instance.SetMasterVolume(GetMasterVolume());
+				foreach (SfxCategorySettings category in SfxCategories)
+				{
+					AudioController.Instance.SetSfxVolume(category.Id, PlayerPrefs.GetFloat(GetVolumeKey(category), 1f));
+				}
+			}
 		}
 		
 		internal void RunSfxValidation()
