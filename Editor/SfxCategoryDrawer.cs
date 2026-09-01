@@ -1,4 +1,4 @@
-﻿using GrygToolsUtils;
+﻿using GrygTools.Utils.Attributes;
 using UnityEditor;
 
 namespace GrygTools.Audio
