@@ -8,6 +8,8 @@ namespace GrygTools.Audio
 		private List<(int,AudioClip)> m_Clips = new List<(int,AudioClip)>();
 		private int m_TotalWeight = 0;
 		public int Count => m_Clips.Count;
+
+		internal IReadOnlyList<(int Weight, AudioClip Clip)> Clips => m_Clips;
 		public void AddClip(int weight, AudioClip clip)
 		{
 			if (m_Clips.Count > 0)

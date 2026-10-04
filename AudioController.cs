@@ -16,12 +16,12 @@ namespace GrygTools.Audio
 		internal const float MaxSfxVolume = 1f;
 		internal const float MaxMusicVolume = 1f;
 
-		private const float VolumeLogScalar = 20f;
-		private const float VolumeZeroEquivalent = 0.00001f;
+		internal const float VolumeLogScalar = 20f;
+		internal const float VolumeZeroEquivalent = 0.00001f;
 
-		private const uint MaxConcurrent = 100;
-		private const uint PerSfxMaxConcurrent = 5;
-		public const float MinTimeSinceLastPlay = 0.01f;
+		internal const uint MaxConcurrent = 100;
+		internal const uint PerSfxMaxConcurrent = 5;
+		internal const float MinTimeSinceLastPlay = 0.01f;
 		
 		public delegate void SfxEndCallback();
 		
@@ -34,6 +34,10 @@ namespace GrygTools.Audio
 		
 		private readonly Dictionary<string, ClipLibrary> m_ClipsListDictionary =
 			new Dictionary<string, ClipLibrary>();
+
+		internal IReadOnlyDictionary<string, ClipLibrary> ClipsListDictionary => m_ClipsListDictionary;
+
+		internal static AudioController ActiveInstance => instance;
 		
 		
 		private readonly Dictionary<Tuple<string, int>, SfxComponent> m_ActiveSfxDictionary =
@@ -43,6 +47,7 @@ namespace GrygTools.Audio
 		private readonly Dictionary<string, uint> m_ConcurrentCountDictionary = new Dictionary<string, uint>();
 		public Dictionary<string, uint> ConcurrentCountDictionary => m_ConcurrentCountDictionary;
 		private readonly Dictionary<string, uint> m_ConcurrentMaxesDictionary = new Dictionary<string, uint>();
+		public Dictionary<string, uint> ConcurrentMaxesDictionary => m_ConcurrentMaxesDictionary;
 		
 		private readonly Dictionary<string, float> m_MinimumTimeSinceLastPlayDictionary = new Dictionary<string, float>();
 		private readonly Dictionary<string, float> m_LastPlayedDictionary = new Dictionary<string, float>();

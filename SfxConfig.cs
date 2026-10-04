@@ -5,40 +5,52 @@ using UnityEngine;
 namespace GrygTools.Audio
 {
 	[Serializable]
-	public class SfxConfig 
+	public class SfxConfig
 	{
 		[SerializeField]
 		[SfxKeyProperty]
-		private string m_SfxName = string.Empty;
+		private string m_SfxName;
 		public string SfxName => m_SfxName;
 
 		[SerializeField]
 		[SfxCategory]
-		private int m_SfxCategory = 1;
+		private int m_SfxCategory;
 		public int SfxCategory => m_SfxCategory;
 
 		[SerializeField]
 		[Range(0f, 1f)]
-		private float m_SfxVolume = 1f;
+		private float m_SfxVolume;
 		public float SfxVolume => m_SfxVolume;
 		
 		[SerializeField]
 		[Min(0)]
-		private float m_SfxDelay = 0;
+		private float m_SfxDelay;
 		public float SfxDelay => m_SfxDelay;
-		
+
 		[SerializeField]
-		private bool m_Looping = false;
+		private bool m_Looping;
 		public bool Looping => m_Looping;
-		
+
 		[SerializeField]
-		private bool m_ForcePlay = false;
+		private bool m_ForcePlay;
 		public bool ForcePlay => m_ForcePlay;
-		
+
 		[SerializeField]
 		[MinAndMaxRangeVec2(0.5f, 1.5f)]
-		private Vector2 m_PitchRandomization = new Vector2(1, 1);
+		private Vector2 m_PitchRandomization;
 		public Vector2 PitchRandomization => m_PitchRandomization;
+		
+		public SfxConfig(SfxConfig source)
+		{
+			m_SfxName = source.m_SfxName;
+			m_SfxCategory = source.m_SfxCategory;
+			m_SfxVolume = source.m_SfxVolume;
+			m_SfxDelay = source.m_SfxDelay;
+			m_Looping = source.m_Looping;
+			m_ForcePlay = source.m_ForcePlay;
+			m_PitchRandomization = source.m_PitchRandomization;
+			m_PitchRandomization = source.m_PitchRandomization;
+		}
 
 		public bool IsSet()
 		{
@@ -59,22 +71,6 @@ namespace GrygTools.Audio
 			{
 				AudioController.Instance.PlaySfx(this, null);
 			}
-		}
-
-		public SfxConfig()
-		{
-		}
-
-		public SfxConfig(SfxConfig source)
-		{
-			m_SfxName = source.m_SfxName;
-			m_SfxCategory = source.m_SfxCategory;
-			m_SfxVolume = source.m_SfxVolume;
-			m_SfxDelay = source.m_SfxDelay;
-			m_Looping = source.m_Looping;
-			m_ForcePlay = source.m_ForcePlay;
-			m_PitchRandomization = source.m_PitchRandomization;
-			m_PitchRandomization = source.m_PitchRandomization;
 		}
 	}
 }

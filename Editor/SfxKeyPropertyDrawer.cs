@@ -67,46 +67,57 @@ namespace GrygTools.Audio
         {
             if (!TypeCheck(property, out string errorString))
             {
-	            GUIStyle errorStyle = "CN EntryErrorIconSmall";
-	            Rect r = new Rect(position);
-	            r.width = errorStyle.fixedWidth;
-	            position.xMin = r.xMax;
-	            GUI.Label(r, "", errorStyle);
-	            GUI.Label(position,  errorString);
-	            return;
+                GUIStyle errorStyle = "CN EntryErrorIconSmall";
+                Rect r = new Rect(position);
+                r.width = errorStyle.fixedWidth;
+                position.xMin = r.xMax;
+                GUI.Label(r, "", errorStyle);
+                GUI.Label(position,  errorString);
+                return;
             }
 
             Populate();
-
-            EditorGUILayout.PropertyField(property);
-            
+        
             int id = GUIUtility.GetControlID(idHash, FocusType.Keyboard, position);
-            label.text = "";
-            label = EditorGUI.BeginProperty(position, label, property);
-            position = EditorGUI.PrefixLabel(position, id, label);
-
-            GUIContent buttonText;
-	        buttonText = new GUIContent(GetButtonText(property));
+            EditorGUI.BeginProperty(position, label, property);
             
-            if (DropdownButton(id, position, buttonText))
+            Rect firstLineRect = position;
+            firstLineRect.height = EditorGUIUtility.singleLineHeight;
+            firstLineRect.xMin += EditorGUI.indentLevel * 15f;
+
+            var buttonText = new GUIContent(GetButtonText(property));
+        
+            if (DropdownButton(id, firstLineRect, buttonText))
             {
                 Action<int> onSelect = i =>
                 {
-	                OnSelect(property, optionsList[i]);
+                    OnSelect(property, optionsList[i]);
                     property.serializedObject.ApplyModifiedProperties();
                 };
-
+        
                 int index = 0;
                 if (!string.IsNullOrEmpty(property.stringValue))
                 {
                     index = optionsList.FindIndex(0, obj => IndexComparison(property, obj));
                 }
-                
-                SearchablePopup.Show(position, nameDictionary.Values.ToArray(), index, onSelect);
+            
+                SearchablePopup.Show(firstLineRect, nameDictionary.Values.ToArray(), index, onSelect);
             }
+            
             EditorGUI.EndProperty();
+        
+            Rect secondLineRect = position;
+            secondLineRect.y += EditorGUIUtility.singleLineHeight;
+            secondLineRect.height = EditorGUIUtility.singleLineHeight;
+            
+            EditorGUI.PropertyField(secondLineRect, property, label);
         }
-		
+
+		public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+		{
+			return base.GetPropertyHeight(property, label) * 2;	
+		}
+
 		protected static bool DropdownButton(int id, Rect position, GUIContent content)
 		{
 			Event current = Event.current;
