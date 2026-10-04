@@ -7,7 +7,7 @@
   "dependencies": {
     "com.unity.addressables": "1.21.20",
     "com.unity.textmeshpro": "3.0.6",
-    "com.grygtools.utils": "1.0.7",
+    "com.grygtools.utils": "1.1.1",
     "com.grygtools.assetmanagement": "1.2.2",
     "com.cysharp.unitask": "2.5.10"
   }
