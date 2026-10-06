@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 namespace GrygTools.Audio
@@ -58,7 +59,16 @@ namespace GrygTools.Audio
 		private string m_EventName = "Footstep";
 		
 		[SerializeField] 
-		private LayerMask m_TerrainLayer;
+		private LayerMask m_CastLayers = ~0;
+
+		[SerializeField]
+		private Transform m_CastOrigin;
+		
+		[SerializeField]
+		private Vector3 m_CastOffset = new Vector3(0f, 0.5f, 0f);
+		
+		[SerializeField]
+		private float m_CastDistance = 2f;
 		
 		[SerializeField]
 		private List<TextureToFootstepSfx> m_TextureToSfxList = new List<TextureToFootstepSfx>();
@@ -72,10 +82,19 @@ namespace GrygTools.Audio
 		private readonly Dictionary<PhysicsMaterial, SfxConfig> m_PhysicsMaterialLookup = new Dictionary<PhysicsMaterial, SfxConfig>();
 		private readonly Dictionary<Texture, SfxConfig> m_TextureLookup = new Dictionary<Texture, SfxConfig>();
 		private readonly Dictionary<string, SfxConfig> m_TagLookup = new Dictionary<string, SfxConfig>();
+		RaycastHit[] m_RayHits = new RaycastHit[1];
 
 		private void Awake()
 		{
 			BuildLookup();
+		}
+
+		private void Reset()
+		{
+			if(m_CastOrigin == null)
+			{
+				m_CastOrigin = transform;
+			}
 		}
 
 		public void PlaySfx(string eventName)
@@ -87,13 +106,13 @@ namespace GrygTools.Audio
 
 			if (m_PhysicsMaterialLookup.Count > 0 || m_TextureLookup.Count > 0 || m_TagLookup.Count > 0)
 			{
-				if (Physics.Raycast(transform.position + Vector3.up * 0.5f, Vector3.down, out RaycastHit hit, 2f, m_TerrainLayer)
-				    && hit.collider != null)
+				if (Physics.RaycastNonAlloc(m_CastOrigin.position + m_CastOffset, Vector3.down, m_RayHits, m_CastDistance, m_CastLayers) > 0
+				    && m_RayHits[0].collider != null)
 				{
 					SfxConfig sfxConfig;
-					if (hit.collider.TryGetComponent(out Terrain terrain))
+					if (m_RayHits[0].collider.TryGetComponent(out Terrain terrain))
 					{
-						var texture = GetDominantTerrainTexture(hit, terrain);
+						var texture = GetDominantTerrainTexture(m_RayHits[0], terrain);
 						Log($"Dominant Terrain Texture: {(texture != null ? texture.name : "null")}", texture);
 
 						if (m_TextureLookup.TryGetValue(texture, out sfxConfig) && sfxConfig.IsSet())
@@ -103,15 +122,15 @@ namespace GrygTools.Audio
 						}
 					}
 
-					Log($"Physics Material: {(hit.collider.sharedMaterial == null ? "null" : hit.collider.sharedMaterial.name)}", hit.collider.sharedMaterial);
-					if (hit.collider.sharedMaterial != null && m_PhysicsMaterialLookup.TryGetValue(hit.collider.sharedMaterial, out sfxConfig) && sfxConfig.IsSet())
+					Log($"Physics Material: {(m_RayHits[0].collider.sharedMaterial == null ? "null" : m_RayHits[0].collider.sharedMaterial.name)}", m_RayHits[0].collider.sharedMaterial);
+					if (m_RayHits[0].collider.sharedMaterial != null && m_PhysicsMaterialLookup.TryGetValue(m_RayHits[0].collider.sharedMaterial, out sfxConfig) && sfxConfig.IsSet())
 					{
 						AudioController.Instance.PlaySfx(sfxConfig, gameObject);
 						return;
 					}
 
-					Log($"Tag: {(hit.collider == null ? "null" : hit.collider.tag)}", hit.collider);
-					if (!string.IsNullOrEmpty(hit.collider.tag) && m_TagLookup.TryGetValue(hit.collider.tag, out sfxConfig) && sfxConfig.IsSet())
+					Log($"Tag: {(m_RayHits[0].collider == null ? "null" : m_RayHits[0].collider.tag)}", m_RayHits[0].collider);
+					if (!string.IsNullOrEmpty(m_RayHits[0].collider.tag) && m_TagLookup.TryGetValue(m_RayHits[0].collider.tag, out sfxConfig) && sfxConfig.IsSet())
 					{
 						AudioController.Instance.PlaySfx(sfxConfig, gameObject);
 						return;
