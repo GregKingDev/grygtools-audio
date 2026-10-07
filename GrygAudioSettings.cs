@@ -1,6 +1,8 @@
-﻿using GrygTools.Utils.Attributes;
+﻿using Cysharp.Threading.Tasks;
+using GrygTools.Utils.Attributes;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Runtime.CompilerServices;
 using UnityEngine;
 using UnityEngine.Audio;
@@ -37,10 +39,13 @@ namespace GrygTools.Audio
 	
 	internal class GrygAudioSettings : ScriptableObject
 	{
-		private const string MuteKey = "Mute";
-		private const string VolumeKey = "Volume";
-		private const string MasterMuteKey = "MasterMute";
-		private const string MasterVolumeKey = "MasterVolume";
+		private const string c_FolderPath = "Assets/Audio/Configs";
+		private const string c_AssetPath = c_FolderPath + "/DefaultSpatialAudioConfig.asset";
+		
+		private const string c_MuteKey = "Mute";
+		private const string c_VolumeKey = "Volume";
+		private const string c_MasterMuteKey = "MasterMute";
+		private const string c_MasterVolumeKey = "MasterVolume";
 		
 		public const string AudioSettingsPath = "Assets/Resources/AudioSettings.asset";
 
@@ -55,6 +60,9 @@ namespace GrygTools.Audio
 		
 		[SerializeField]
 		public List<MusicPriorityCategory> MusicCategories;
+		
+		[SerializeField]
+		public SpatialAudioConfig SpatialAudioConfig;
 
 		public static GrygAudioSettings GetOrCreateSettings()
 		{
@@ -84,22 +92,22 @@ namespace GrygTools.Audio
 
 		public float GetMasterVolume()
 		{
-			return PlayerPrefs.GetFloat(MasterVolumeKey, 1f);
+			return PlayerPrefs.GetFloat(c_MasterVolumeKey, 1f);
 		}
 
 		public void SetMasterVolume(float volume)
 		{
-			PlayerPrefs.SetFloat(MasterVolumeKey, volume);
+			PlayerPrefs.SetFloat(c_MasterVolumeKey, volume);
 		}
 		
 		public void SetMasterMute(bool isMuted)
 		{
-			PlayerPrefs.SetInt(MasterMuteKey, isMuted ? 1 : 0);
+			PlayerPrefs.SetInt(c_MasterMuteKey, isMuted ? 1 : 0);
 		}
 		
 		public bool GetMasterMute()
 		{
-			return PlayerPrefs.GetInt(MasterMuteKey, 0) == 1;
+			return PlayerPrefs.GetInt(c_MasterMuteKey, 0) == 1;
 		}
 		
 		public void SetCategoryMute(int id, bool isMuted)
@@ -162,28 +170,70 @@ namespace GrygTools.Audio
 
 		private string GetVolumeKey(int id)
 		{
-			return $"{VolumeKey}{id.ToString()}";
+			return $"{c_VolumeKey}{id.ToString()}";
 		}
 		
 		private string GetVolumeKey(SfxCategorySettings categorySettings)
 		{
-			return $"{VolumeKey}{categorySettings.Id.ToString()}";
+			return $"{c_VolumeKey}{categorySettings.Id.ToString()}";
 		}
 		
 		private string GetMuteKey(int id)
 		{
-			return $"{MuteKey}{id.ToString()}";
+			return $"{c_MuteKey}{id.ToString()}";
 		}
 		
 		private string GetMuteKey(SfxCategorySettings categorySettings)
 		{
-			return $"{MuteKey}{categorySettings.Id.ToString()}";
+			return $"{c_MuteKey}{categorySettings.Id.ToString()}";
 		}
 		
 #if UNITY_EDITOR
 		public static UnityEditor.SerializedObject GetSerializedSettings()
 		{
 			return new UnityEditor.SerializedObject(GetOrCreateSettings());
+		}
+		
+		internal static async void AudioSettingsConfigCheck()
+		{
+			var audioSettings = GetOrCreateSettings();
+			if(audioSettings.SpatialAudioConfig == null)
+			{
+				var settings = new UnityEditor.SerializedObject(audioSettings);
+				SpatialAudioConfig existingAsset = UnityEditor.AssetDatabase.LoadAssetAtPath<SpatialAudioConfig>(c_AssetPath);
+				
+				if (existingAsset == null)
+				{
+					if (!Directory.Exists(c_FolderPath))
+					{
+						Directory.CreateDirectory(c_FolderPath);
+					}
+					SpatialAudioConfig newConfig = ScriptableObject.CreateInstance<SpatialAudioConfig>();
+					UnityEditor.AssetDatabase.CreateAsset(newConfig, c_AssetPath);
+					UnityEditor.AssetDatabase.SaveAssets();
+					existingAsset = newConfig;
+					Debug.LogWarning($"DefaultSpatialAudioConfig asset not set and not found at default location. A new one has been created at {c_AssetPath}. .");
+				}
+				else
+				{
+					Debug.LogWarning($"DefaultSpatialAudioConfig asset not set but found at default location. Using existing asset at {c_AssetPath}. .");
+				}
+				UnityEditor.AssetDatabase.SaveAssets();
+				settings.FindProperty("SpatialAudioConfig").objectReferenceValue = existingAsset;
+				settings.ApplyModifiedProperties();
+				UnityEditor.EditorUtility.SetDirty(settings.targetObject);
+				
+				//OnSettingsChanged has a minor delay to allow for serialization and disk write
+				await UniTask.WaitForSeconds(0.1f);
+				var serializedSettings = GrygAudioSettings.GetSerializedSettings();
+				
+				if (serializedSettings != null)
+				{
+					serializedSettings.Update();
+					serializedSettings.ApplyModifiedPropertiesWithoutUndo();
+				}
+				UnityEditor.SettingsService.NotifySettingsProviderChanged();
+			}
 		}
 
 		public void OnValidate()
@@ -274,4 +324,21 @@ namespace GrygTools.Audio
 		}
 #endif
 	}
+	
+	#if UNITY_EDITOR
+	[UnityEditor.InitializeOnLoad]
+	public static class SpatialAudioPackageInitializer
+	{
+		static SpatialAudioPackageInitializer()
+		{
+			// Use delayCall to ensure Unity's AssetDatabase is fully initialized 
+			// and safe to modify before running your configuration check.
+			UnityEditor.EditorApplication.delayCall += CheckAndSetupSpatialAudio;
+		}
+		private static void CheckAndSetupSpatialAudio()
+		{
+			GrygAudioSettings.AudioSettingsConfigCheck();
+		}
+	}
+	#endif
 }

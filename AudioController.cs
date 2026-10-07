@@ -28,7 +28,7 @@ namespace GrygTools.Audio
 		private SfxComponent m_SfxCompTemplate = null;
 		private Transform m_SfxPoolTransform = null;
 		
-		private readonly List<SfxComponent> m_SfxPool = new List<SfxComponent>();
+		private readonly List<SfxComponent> m_SfxComponentPool = new List<SfxComponent>();
 
 		private readonly Dictionary<int, AudioMixerGroup> m_SfxCategoryToGroup = new();
 		
@@ -281,14 +281,14 @@ namespace GrygTools.Audio
 		
 		private SfxComponent LeaseSfxComponent()
 		{
-			for (int i = m_SfxPool.Count - 1; i >= 0; i--)
+			for (int i = m_SfxComponentPool.Count - 1; i >= 0; i--)
 			{
-				if (!m_SfxPool[i].IsBusy)
+				if (!m_SfxComponentPool[i].IsBusy)
 				{
-					m_SfxPool[i].SetBusy(true);
-					m_SfxPool[i].gameObject.SetActive(true);
+					m_SfxComponentPool[i].SetBusy(true);
+					m_SfxComponentPool[i].gameObject.SetActive(true);
 
-					return m_SfxPool[i];
+					return m_SfxComponentPool[i];
 				}
 			}
 
@@ -298,7 +298,7 @@ namespace GrygTools.Audio
 			newComp.Source.spatialize = false;
 			newComp.Source.spatialBlend = 0;
 			newComp.SetBusy(true);
-			m_SfxPool.Add(newComp);
+			m_SfxComponentPool.Add(newComp);
 
 			return newComp;
 		}
@@ -313,7 +313,7 @@ namespace GrygTools.Audio
 		
 		internal void RemoveSfxCompOnDestroy(SfxComponent comp)
 		{
-			m_SfxPool.Remove(comp);
+			m_SfxComponentPool.Remove(comp);
 		}
 
 		public void LoadAudioConfig(IEnumerable<AudioClipConfig> configs)
