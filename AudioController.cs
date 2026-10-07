@@ -237,11 +237,10 @@ namespace GrygTools.Audio
 				return;
 			}
 			
-			SfxComponent sfxComp = LeaseSfxComponent();
-			m_LastPlayedDictionary[clipName] = Time.realtimeSinceStartup;
-
 			if (m_SfxCategoryToGroup.TryGetValue(category, out AudioMixerGroup group))
 			{
+				SfxComponent sfxComp = LeaseSfxComponent();
+				m_LastPlayedDictionary[clipName] = Time.realtimeSinceStartup;
 				sfxComp.PlaySfx(group, clip, clipName, sourceObject, volume, loop, delay, null, category, pitch);
 			}
 		}
@@ -286,7 +285,6 @@ namespace GrygTools.Audio
 				if (!m_SfxPool[i].IsBusy)
 				{
 					m_SfxPool[i].SetBusy(true);
-					m_SfxPool[i].gameObject.SetActive(true);
 
 					return m_SfxPool[i];
 				}
@@ -306,8 +304,8 @@ namespace GrygTools.Audio
 		internal void ReturnSfxObject(SfxComponent comp)
 		{
 			Transform sourceTransform = comp.transform;
-			sourceTransform.parent = m_SfxPoolTransform;
-			sourceTransform.position = m_SfxPoolTransform.position;
+			sourceTransform.SetParent(m_SfxPoolTransform, false);
+			sourceTransform.localPosition = Vector3.zero;
 			comp.SetBusy(false);
 		}
 		

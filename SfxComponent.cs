@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Cysharp.Threading.Tasks;
+using System;
 using UnityEngine;
 using UnityEngine.Audio;
 
@@ -51,22 +52,24 @@ namespace GrygTools.Audio
 			m_IsBusy = busy;
 		}
 		
-		internal void PlaySfx(AudioMixerGroup sfxGroup, AudioClip clip, string clipName, GameObject requestingObj, float vol,
+		internal async void PlaySfx(AudioMixerGroup sfxGroup, AudioClip clip, string clipName, GameObject requestingObj, float vol,
 			bool looping, float delay, Action cb, int category, float pitch = 1f)
 		{
 			m_SfxName = clipName;
 			if (requestingObj != null)
 			{
 				m_RequestingObjHash = requestingObj.GetHashCode();
-				transform.parent = requestingObj.transform;
+				transform.SetParent(requestingObj.transform, false);
+				transform.localPosition = Vector3.zero;
 				m_Source.loop = looping;
+				await UniTask.DelayFrame(1);
 			}
 			else
 			{
 				m_RequestingObjHash = 0;
 				m_Source.loop = false;
 			}
-			
+			gameObject.SetActive(true);
 			m_Source.clip = clip;
 			this.m_Category = category;
 			m_Source.volume = vol;
@@ -129,6 +132,7 @@ namespace GrygTools.Audio
 		{
 			AudioController.Instance.DecrementClipCount(this);
 			m_State = SfxState.Idle;
+			gameObject.SetActive(false);
 			AudioController.Instance.ReturnSfxObject(this);
 			m_Callback?.Invoke();
 		}
@@ -137,6 +141,7 @@ namespace GrygTools.Audio
 		{
 			m_Source.Stop();
 			AudioController.Instance.DecrementClipCount(this);
+			gameObject.SetActive(false);
 			AudioController.Instance.ReturnSfxObject(this);
 			m_State = SfxState.Idle;
 		}
