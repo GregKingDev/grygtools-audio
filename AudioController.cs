@@ -3,11 +3,13 @@ using GrygTools.Utils.Core;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.Audio;
+using Debug = UnityEngine.Debug;
 using Random = UnityEngine.Random;
 
 namespace GrygTools.Audio
@@ -229,6 +231,7 @@ namespace GrygTools.Audio
 			SpatialAudioConfig spatialAudioConfig = null)
 		{
 			k_PlaySfxMarker.Begin();
+			
 			if (TryGetClipFromName(clipName, out AudioClip clip))
 			{
 				if (IsAtMaxConcurrent(clipName))
@@ -245,6 +248,7 @@ namespace GrygTools.Audio
 			
 			if (!CheckTimeBetweenPlays(clipName))
 			{
+				Logger.Log($"PlaySfx blocked, clipName: {clipName} is at max simultaneous plays", sourceObject);
 				return;
 			}
 			
@@ -261,7 +265,12 @@ namespace GrygTools.Audio
 
 			if (m_SfxCategoryToGroup.TryGetValue(category, out AudioMixerGroup group))
 			{
+				Logger.Log($"Playing Sfx: Key: {clipName} Clip: {clip.name} category: {category}", clip);
 				sfxComp.PlaySfx(group, clip, clipName, sourceObject, volume, loop, delay, null, category, pitch);
+			}
+			else
+			{
+				Debug.LogWarning($"No AudioMixerGroup found for category {category}");
 			}
 			k_PlaySfxMarker.End();
 		}
@@ -567,6 +576,7 @@ namespace GrygTools.Audio
 				Debug.LogWarning("MusicConfig was null or no track was set.");
 				return;
 			}
+			
 			PlayTrack(config.TrackName, config.Priority, config.TrackVolume, config.Looping, config.CrossFadeTime, onEndCallback, config.StartOffset);
 		}
 		
@@ -596,11 +606,13 @@ namespace GrygTools.Audio
 					//If there is no track playing or the priority attempting to play is not busy play this track now
 					if (m_PlayingTrack == null || !m_PlayingTrack.IsBusy)
 					{
+						Logger.Log($"Playing Music: clipName: {clipName} clip: {clip.name} priority: {priority}", clip);
 						targetComponent.PlayTrack(m_MusicGroup, clip, clipName, crossFadeTime / 2, vol, loop, onEndCallback, true, startOffset);
 						m_PlayingTrack = targetComponent;
 					}
 					else if(priority >= m_PlayingTrack.Priority)
 					{
+						Logger.Log($"Transitioning to Music: clipName: {clipName} clip: {clip.name} priority: {priority}", clip);
 						targetComponent.SetTrackData(m_MusicGroup, clip, clipName, vol, loop, onEndCallback, startOffset);
 						
 						m_PlayingTrack.FadeOut(crossFadeTime / 2, () =>
@@ -611,6 +623,7 @@ namespace GrygTools.Audio
 					}
 					else // set data, do not transition to track
 					{
+						Logger.Log($"Track is not highest priority setting track data: clipName: {clipName} clip: {clip.name} priority: {priority}", clip);
 						targetComponent.SetTrackData(m_MusicGroup, clip, clipName, vol, loop, onEndCallback, startOffset);
 					}
 				}
@@ -649,6 +662,7 @@ namespace GrygTools.Audio
 					
 					if (track.IsWaitingOnPriority)
 					{
+						Logger.Log($"Resuming Music: clipName: {track.TrackName} priority: {track.Priority}", track);
 						track.Unpause(fadeTime != 0 ? fadeTime : track.FadeInTime);
 						m_PlayingTrack = track;
 						return;

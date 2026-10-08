@@ -193,7 +193,7 @@ namespace GrygTools.Audio
 		internal void ApplySpatialConfig(SpatialAudioConfig config)
 		{
 			if (config == null || config.GetInstanceID() == m_ActiveSpatialConfigID) return;
-
+			Logger.Log($"ApplySpatialConfig: {config.name}", this);
 			m_ActiveSpatialConfigID = config.GetInstanceID();
 			
 			// Apply basic settings
