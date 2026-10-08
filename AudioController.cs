@@ -4,6 +4,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.Audio;
@@ -31,6 +32,7 @@ namespace GrygTools.Audio
 		private readonly List<SfxComponent> m_SfxComponentPool = new List<SfxComponent>();
 
 		private readonly Dictionary<int, AudioMixerGroup> m_SfxCategoryToGroup = new();
+		private readonly Dictionary<int, SpatialAudioConfig> m_SfxCategoryToSpatialAudioConfig = new();
 		
 		private readonly Dictionary<string, ClipLibrary> m_ClipsListDictionary =
 			new Dictionary<string, ClipLibrary>();
@@ -92,6 +94,8 @@ namespace GrygTools.Audio
 
 		protected override void Init()
 		{
+			m_SfxCategoryToSpatialAudioConfig.Clear();
+			m_SfxCategoryToGroup.Clear();
 			foreach (SfxCategorySettings category in AudioSettings.SfxCategories)
 			{
 				if (category.IsMusicGroup)
@@ -101,6 +105,10 @@ namespace GrygTools.Audio
 				else
 				{
 					m_SfxCategoryToGroup.Add(category.Id, category.MixerGroup);
+					if (category.SpatialConfigOverride != null)
+					{
+						m_SfxCategoryToSpatialAudioConfig.Add(category.Id, category.SpatialConfigOverride);
+					}
 				}
 			}
 			
@@ -208,16 +216,19 @@ namespace GrygTools.Audio
 		public void PlaySfx(SfxConfig config, GameObject sourceObject)
 		{
 			PlaySfx(config.SfxName, config.ForcePlay ? null : sourceObject, config.SfxCategory, config.Looping, 
-				Random.Range(config.PitchRandomization.x, config.PitchRandomization.y), config.SfxVolume, config.SfxDelay);
+				Random.Range(config.PitchRandomization.x, config.PitchRandomization.y), config.SfxVolume, config.SfxDelay, config.SpatialAudioConfig);
 		}
 
-		public void ForcePlaySfx(string clipName, int category, bool loop = false, float pitch = 1, float volume = 1f, float delay = 1f)
+		public void ForcePlaySfx(string clipName, int category, bool loop = false, float pitch = 1, float volume = 1f, float delay = 1f, SpatialAudioConfig spatialAudioConfig = null)
 		{
-			PlaySfx(clipName, null, category, loop, pitch, volume, delay);
+			PlaySfx(clipName, null, category, loop, pitch, volume, delay, spatialAudioConfig);
 		}
-		
-		public void PlaySfx(string clipName, GameObject sourceObject, int category, bool loop = false, float pitch = 1f, float volume = 1f, float delay = 1f)
+		static readonly ProfilerMarker k_PlaySfxMarker = new ProfilerMarker("GrygTools.Audio.PlaySfx");
+
+		public void PlaySfx(string clipName, GameObject sourceObject, int category, bool loop = false, float pitch = 1f, float volume = 1f, float delay = 1f,
+			SpatialAudioConfig spatialAudioConfig = null)
 		{
+			k_PlaySfxMarker.Begin();
 			if (TryGetClipFromName(clipName, out AudioClip clip))
 			{
 				if (IsAtMaxConcurrent(clipName))
@@ -238,12 +249,21 @@ namespace GrygTools.Audio
 			}
 			
 			SfxComponent sfxComp = LeaseSfxComponent();
+			if (spatialAudioConfig == null)
+			{
+				if (!m_SfxCategoryToSpatialAudioConfig.TryGetValue(category, out spatialAudioConfig))
+				{
+					spatialAudioConfig = AudioSettings.DefaultSpatialAudioConfig;
+				}
+			}
+			sfxComp.ApplySpatialConfig(spatialAudioConfig);
 			m_LastPlayedDictionary[clipName] = Time.realtimeSinceStartup;
 
 			if (m_SfxCategoryToGroup.TryGetValue(category, out AudioMixerGroup group))
 			{
 				sfxComp.PlaySfx(group, clip, clipName, sourceObject, volume, loop, delay, null, category, pitch);
 			}
+			k_PlaySfxMarker.End();
 		}
 
 		internal void IncrementClipCount(SfxComponent comp)
@@ -295,8 +315,7 @@ namespace GrygTools.Audio
 			SfxComponent newComp = Instantiate(m_SfxCompTemplate, m_SfxPoolTransform);
 
 			newComp.Source.volume = 1f;
-			newComp.Source.spatialize = false;
-			newComp.Source.spatialBlend = 0;
+			newComp.ApplySpatialConfig(AudioSettings.DefaultSpatialAudioConfig);
 			newComp.SetBusy(true);
 			m_SfxComponentPool.Add(newComp);
 

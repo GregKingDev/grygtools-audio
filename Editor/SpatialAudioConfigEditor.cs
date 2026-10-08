@@ -49,13 +49,22 @@ public class SpatialAudioConfigEditor : Editor
         EditorGUI.BeginChangeCheck();
 
         EditorGUILayout.LabelField("Base Configuration Settings", EditorStyles.boldLabel);
-        config.spatialBlend = EditorGUILayout.Slider("Spatial Blend", config.spatialBlend, 0f, 1f);
-        config.reverbZoneMix = EditorGUILayout.Slider("Reverb Zone Mix", config.reverbZoneMix, 0f, 1.1f);
+        
+        var (min, max) = GetRangeAttribute(nameof(SpatialAudioConfig.spatialBlend));
+        config.spatialBlend = EditorGUILayout.Slider("Spatial Blend", config.spatialBlend, min, max);
+        
+        (min, max) = GetRangeAttribute(nameof(SpatialAudioConfig.reverbZoneMix));
+        config.reverbZoneMix = EditorGUILayout.Slider("Reverb Zone Mix", config.reverbZoneMix, min, max);
         
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("3D Sound Settings", EditorStyles.boldLabel);
-        config.dopplerLevel = EditorGUILayout.Slider("Doppler Level", config.dopplerLevel, 0f, 1.1f);
-        config.spread = EditorGUILayout.Slider("Spread", config.spread, 0f, 360f);
+        
+        (min, max) = GetRangeAttribute(nameof(SpatialAudioConfig.dopplerLevel));
+        config.dopplerLevel = EditorGUILayout.Slider("Doppler Level", config.dopplerLevel, min, max);
+        
+        (min, max) = GetRangeAttribute(nameof(SpatialAudioConfig.spread));
+        config.spread = EditorGUILayout.Slider("Spread", config.spread, min, max);
+        
         config.rolloffMode = (AudioRolloffMode)EditorGUILayout.EnumPopup("Volume Rolloff", config.rolloffMode);
         config.minDistance = EditorGUILayout.FloatField("Min Distance", config.minDistance);
         config.maxDistance = EditorGUILayout.FloatField("Max Distance", config.maxDistance);
@@ -118,6 +127,20 @@ public class SpatialAudioConfigEditor : Editor
         }
 
         serializedObject.ApplyModifiedProperties();
+    }
+    
+    private (float min, float max) GetRangeAttribute(string fieldName)
+    {
+        FieldInfo field = typeof(SpatialAudioConfig).GetField(fieldName);
+        if (field != null)
+        {
+            RangeAttribute rangeAttr = field.GetCustomAttribute<RangeAttribute>();
+            if (rangeAttr != null)
+            {
+                return (rangeAttr.min, rangeAttr.max);
+            }
+        }
+        return (0f, 1f);
     }
 
     private void ResetToEngineDefaults(SpatialAudioConfig config)

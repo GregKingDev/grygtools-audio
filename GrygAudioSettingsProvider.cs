@@ -79,7 +79,7 @@ namespace GrygTools.Audio
 			}
 			EditorGUILayout.EndHorizontal();
 			
-			EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("SpatialAudioConfig"));
+			EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("DefaultSpatialAudioConfig"));
 			
 			EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("SfxCategories"));
 			

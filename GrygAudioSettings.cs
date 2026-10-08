@@ -19,6 +19,7 @@ namespace GrygTools.Audio
 		public string VolumeParameterName;
 		public AudioMixerGroup MixerGroup;
 		public bool IsMusicGroup;
+		public SpatialAudioConfig SpatialConfigOverride;
 	}
 
 	[Serializable]
@@ -62,7 +63,7 @@ namespace GrygTools.Audio
 		public List<MusicPriorityCategory> MusicCategories;
 		
 		[SerializeField]
-		public SpatialAudioConfig SpatialAudioConfig;
+		public SpatialAudioConfig DefaultSpatialAudioConfig;
 
 		public static GrygAudioSettings GetOrCreateSettings()
 		{
@@ -197,7 +198,7 @@ namespace GrygTools.Audio
 		internal static async void AudioSettingsConfigCheck()
 		{
 			var audioSettings = GetOrCreateSettings();
-			if(audioSettings.SpatialAudioConfig == null)
+			if(audioSettings.DefaultSpatialAudioConfig == null)
 			{
 				var settings = new UnityEditor.SerializedObject(audioSettings);
 				SpatialAudioConfig existingAsset = UnityEditor.AssetDatabase.LoadAssetAtPath<SpatialAudioConfig>(c_AssetPath);
@@ -219,7 +220,7 @@ namespace GrygTools.Audio
 					Debug.LogWarning($"DefaultSpatialAudioConfig asset not set but found at default location. Using existing asset at {c_AssetPath}. .");
 				}
 				UnityEditor.AssetDatabase.SaveAssets();
-				settings.FindProperty("SpatialAudioConfig").objectReferenceValue = existingAsset;
+				settings.FindProperty("DefaultSpatialAudioConfig").objectReferenceValue = existingAsset;
 				settings.ApplyModifiedProperties();
 				UnityEditor.EditorUtility.SetDirty(settings.targetObject);
 				
