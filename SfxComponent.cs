@@ -98,31 +98,40 @@ namespace GrygTools.Audio
 		
 		private void Update()
 		{
-			//TODO split out state updates GKK
 			if (m_IsBusy)
 			{
 				if (m_State == SfxState.Waiting)
 				{
-					m_SfxDelayTimer -= Time.unscaledDeltaTime;
-					if (m_SfxDelayTimer <= 0)
-					{
-						InternalPlaySfx();
-					}	
+					UpdateWaitingState();
 				}
 				else if (m_State == SfxState.Playing)
 				{
-					m_SfxTimer -= Time.unscaledDeltaTime;
-					if (m_SfxTimer <= 0)
-					{
-						if (m_Source.loop)
-						{
-							m_SfxTimer = m_Source.clip.length + m_SfxTimer;
-						}
-						else
-						{
-							OnFinishedPlaying();	
-						}
-					}
+					UpdatePlayingState();
+				}
+			}
+		}
+
+		private void UpdateWaitingState()
+		{
+			m_SfxDelayTimer -= Time.unscaledDeltaTime;
+			if (m_SfxDelayTimer <= 0)
+			{
+				InternalPlaySfx();
+			}
+		}
+		
+		private void UpdatePlayingState()
+		{
+			m_SfxTimer -= Time.unscaledDeltaTime;
+			if (m_SfxTimer <= 0)
+			{
+				if (m_Source.loop)
+				{
+					m_SfxTimer = m_Source.clip.length + m_SfxTimer;
+				}
+				else
+				{
+					OnFinishedPlaying();	
 				}
 			}
 		}
