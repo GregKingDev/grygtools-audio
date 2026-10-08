@@ -1,5 +1,4 @@
-﻿using Cysharp.Threading.Tasks;
-using System;
+﻿using System;
 using UnityEngine;
 using UnityEngine.Audio;
 
@@ -15,6 +14,8 @@ namespace GrygTools.Audio
 			Paused = 4,
 			Destroyed = 5
 		}
+		private int m_ActiveSpatialConfigID = 0;
+		
 		private AudioSource m_Source = null;
 		public AudioSource Source => m_Source;
 		
@@ -38,12 +39,9 @@ namespace GrygTools.Audio
 		
 		private void Awake()
 		{
-			if (m_Source == null)
+			if (m_Source == null && !TryGetComponent(out m_Source))
 			{
-				if (!TryGetComponent(out m_Source))
-				{
-					m_Source = gameObject.AddComponent<AudioSource>();
-				}
+				m_Source = gameObject.AddComponent<AudioSource>();
 			}
 		}
 		
@@ -52,7 +50,7 @@ namespace GrygTools.Audio
 			m_IsBusy = busy;
 		}
 		
-		internal async void PlaySfx(AudioMixerGroup sfxGroup, AudioClip clip, string clipName, GameObject requestingObj, float vol,
+		internal void PlaySfx(AudioMixerGroup sfxGroup, AudioClip clip, string clipName, GameObject requestingObj, float vol,
 			bool looping, float delay, Action cb, int category, float pitch = 1f)
 		{
 			m_SfxName = clipName;
@@ -62,13 +60,13 @@ namespace GrygTools.Audio
 				transform.SetParent(requestingObj.transform, false);
 				transform.localPosition = Vector3.zero;
 				m_Source.loop = looping;
-				await UniTask.DelayFrame(1);
 			}
 			else
 			{
 				m_RequestingObjHash = 0;
 				m_Source.loop = false;
 			}
+			
 			gameObject.SetActive(true);
 			m_Source.clip = clip;
 			this.m_Category = category;
@@ -104,26 +102,36 @@ namespace GrygTools.Audio
 			{
 				if (m_State == SfxState.Waiting)
 				{
-					m_SfxDelayTimer -= Time.unscaledDeltaTime;
-					if (m_SfxDelayTimer <= 0)
-					{
-						InternalPlaySfx();
-					}	
+					UpdateWaitingState();
 				}
 				else if (m_State == SfxState.Playing)
 				{
-					m_SfxTimer -= Time.unscaledDeltaTime;
-					if (m_SfxTimer <= 0)
-					{
-						if (m_Source.loop)
-						{
-							m_SfxTimer = m_Source.clip.length + m_SfxTimer;
-						}
-						else
-						{
-							OnFinishedPlaying();	
-						}
-					}
+					UpdatePlayingState();
+				}
+			}
+		}
+
+		private void UpdateWaitingState()
+		{
+			m_SfxDelayTimer -= Time.unscaledDeltaTime;
+			if (m_SfxDelayTimer <= 0)
+			{
+				InternalPlaySfx();
+			}
+		}
+		
+		private void UpdatePlayingState()
+		{
+			m_SfxTimer -= Time.unscaledDeltaTime;
+			if (m_SfxTimer <= 0)
+			{
+				if (m_Source.loop)
+				{
+					m_SfxTimer = m_Source.clip.length + m_SfxTimer;
+				}
+				else
+				{
+					OnFinishedPlaying();	
 				}
 			}
 		}
@@ -179,6 +187,31 @@ namespace GrygTools.Audio
 			if (m_IsBusy)
 			{
 				AudioController.Instance.DecrementClipCount(this);
+			}
+		}
+		
+		internal void ApplySpatialConfig(SpatialAudioConfig config)
+		{
+			if (config == null || config.GetInstanceID() == m_ActiveSpatialConfigID) return;
+
+			m_ActiveSpatialConfigID = config.GetInstanceID();
+			
+			// Apply basic settings
+			Source.spatialBlend = config.spatialBlend;
+			Source.reverbZoneMix = config.reverbZoneMix;
+			Source.dopplerLevel = config.dopplerLevel;
+			Source.spread = config.spread;
+			Source.rolloffMode = config.rolloffMode;
+			Source.minDistance = config.minDistance;
+			Source.maxDistance = config.maxDistance;
+
+			// Apply the custom 3D graphs if using Custom Rolloff
+			if (config.rolloffMode == AudioRolloffMode.Custom)
+			{
+				Source.SetCustomCurve(AudioSourceCurveType.CustomRolloff, config.volumeCurve);
+				Source.SetCustomCurve(AudioSourceCurveType.SpatialBlend, config.spatialBlendCurve);
+				Source.SetCustomCurve(AudioSourceCurveType.Spread, config.spreadCurve);
+				Source.SetCustomCurve(AudioSourceCurveType.ReverbZoneMix, config.reverbZoneMixCurve);
 			}
 		}
 	}

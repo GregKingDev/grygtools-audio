@@ -1,4 +1,6 @@
 ﻿#if UNITY_EDITOR
+using Cysharp.Threading.Tasks;
+using System.IO;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -7,6 +9,9 @@ namespace GrygTools.Audio
 {
 	public class GrygAudioSettingsProvider : SettingsProvider
 	{
+		private const string c_FolderPath = "Assets/Audio/Configs";
+		private const string c_AssetPath = c_FolderPath + "/DefaultSpatialAudioConfig.asset";
+		
 		private SerializedObject m_CustomSettings;
 		
 		private float m_MasterSliderValue = 1f;
@@ -30,13 +35,15 @@ namespace GrygTools.Audio
 		public override void OnActivate(string searchContext, VisualElement rootElement)
 		{
 			m_CustomSettings = GrygAudioSettings.GetSerializedSettings();
+			GrygAudioSettings.AudioSettingsConfigCheck();
 		}
-
+		
 		public override void OnGUI(string searchContext)
 		{
 			// Master volume slider
 			EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("Mixer"));
 			EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("MasterVolumeParameterName"));
+			
 			EditorGUILayout.BeginHorizontal();
 			EditorGUILayout.LabelField("Master Volume", GUILayout.Width(100));
 			float oldMasterVolume = AudioSettings.GetMasterVolume();
@@ -72,6 +79,7 @@ namespace GrygTools.Audio
 			}
 			EditorGUILayout.EndHorizontal();
 			
+			EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("DefaultSpatialAudioConfig"));
 			
 			EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("SfxCategories"));
 			

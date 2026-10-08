@@ -97,6 +97,12 @@ namespace GrygTools.Audio
 					AudioSettings.SetCategoryMute(catId, m_MuteValue);
 				}
 			}
+			
+			runningPos += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
+			EditorGUI.BeginProperty(rect, label, property.FindPropertyRelative("SpatialConfigOverride"));
+			runningRect = new Rect(rect.x, runningPos, rect.width, EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing);
+			EditorGUI.PropertyField(runningRect, property.FindPropertyRelative("SpatialConfigOverride"));
+			EditorGUI.EndProperty();
 		}
 	}
 }

@@ -17,7 +17,7 @@ namespace GrygTools.Audio
 			WaitingOnPriority = 32
 		}
 		
-		private AudioSource m_Source = null;
+		private AudioSource m_Source ;
 		public AudioSource Source => m_Source;
 		
 		private int m_Priority = 1;
@@ -26,26 +26,26 @@ namespace GrygTools.Audio
 		private string m_TrackName = string.Empty;
 		public string TrackName => m_TrackName;
 		
-		private bool m_IsBusy = false;
+		private bool m_IsBusy;
 		public bool IsBusy => m_IsBusy;
 		
 		private AudioController.SfxEndCallback m_Callback;
 		private AudioController.SfxEndCallback m_FadeoutCallback;
 		
-		private float m_TrackTimer = 0f;
-		private float m_FadeInTimer = 0f;
-		private float m_FadeOutTimer = 0f;
-		private float m_FadeInTime = 0f;
+		private float m_TrackTimer;
+		private float m_FadeInTimer;
+		private float m_FadeOutTimer;
+		private float m_FadeInTime;
 		public float FadeInTime => m_FadeInTime;
 
-		private float m_FadeOutTime = 0f;
+		private float m_FadeOutTime;
 		public float FadeOutTime => m_FadeOutTime;
 
 		private float m_TargetVolume = 1f;
 		private MusicState m_State = MusicState.Idle;
 		public MusicState State => m_State;
-		private bool m_Looping = false;
-		private bool m_ResumeNextOnEnd = false;
+		private bool m_Looping;
+		private bool m_ResumeNextOnEnd;
 		
 		private AudioController m_AudioController;
 		
@@ -53,13 +53,11 @@ namespace GrygTools.Audio
 		
 		private void Awake()
 		{
-			if (m_Source == null)
+			if (m_Source == null && !TryGetComponent(out m_Source))
 			{
-				if (!TryGetComponent(out m_Source))
-				{
-					m_Source = gameObject.AddComponent<AudioSource>();
-				}
+				m_Source = gameObject.AddComponent<AudioSource>();
 			}
+		
 			m_AudioController = AudioController.Instance;
 		}
 		
@@ -75,7 +73,7 @@ namespace GrygTools.Audio
 		}
 		
 		internal void PlayTrack(AudioMixerGroup sfxGroup, AudioClip clip, string clipName, 
-			float fadeInlength, float vol, bool loop, AudioController.SfxEndCallback cb, bool resumeNextOnEnd, float offset)
+			float fadeInLength, float vol, bool loop, AudioController.SfxEndCallback cb, bool resumeNextOnEnd, float offset)
 		{
 			offset = Mathf.Clamp(offset, 0, clip.length);
 
@@ -96,17 +94,10 @@ namespace GrygTools.Audio
 			}
 			else
 			{
-				m_FadeInTimer = m_FadeInTime = fadeInlength;
+				m_FadeInTimer = m_FadeInTime = fadeInLength;
 			}
 			
-			if (m_FadeInTimer > 0f)
-			{
-				m_State = MusicState.FadingIn;
-			}
-			else
-			{
-				m_State = MusicState.Playing;
-			}
+			m_State = m_FadeInTimer > 0f ? MusicState.FadingIn : MusicState.Playing;
 
 			m_Source.time = offset;
 			m_IsBusy = true;
@@ -163,45 +154,60 @@ namespace GrygTools.Audio
 			{
 				if (m_State == MusicState.Playing)
 				{
-					m_TrackTimer -= Time.unscaledDeltaTime;
-					if (m_TrackTimer <= 0)
-					{
-						OnFinishedPlaying();
-					}
-					else if (m_TrackTimer <= m_FadeOutTime && m_FadeOutTime < 0f)
-					{
-						m_State = MusicState.FadingOut;
-					}
+					UpdatePlayingState();
 				}
 				else if (m_State == MusicState.FadingIn)
 				{
-					m_TrackTimer -= Time.unscaledDeltaTime;
-					m_FadeInTimer -= Time.unscaledDeltaTime;
-					m_Source.volume = Mathf.Clamp((m_FadeInTime - m_FadeInTimer) / m_FadeInTime * m_TargetVolume, 0, m_TargetVolume);
-					if (m_TrackTimer <= 0)
-					{
-						OnFinishedPlaying();
-					}
-					else if (m_FadeInTimer <= 0f)
-					{
-						m_State = MusicState.Playing;
-					}
+					UpdateFadingInState();
 				}
 				else if (m_State == MusicState.FadingOut)
 				{
-					m_TrackTimer -= Time.unscaledDeltaTime;
-					m_FadeOutTimer -= Time.unscaledDeltaTime;
-					m_Source.volume = Mathf.Clamp(m_FadeOutTimer / m_FadeOutTime * m_TargetVolume, m_TargetVolume, 1);
-					if (m_TrackTimer <= 0)
-					{
-						OnFinishedPlaying();
-					}
-					else if (m_FadeOutTimer <= 0f)
-					{
-						SuspendTrack();
-						m_FadeoutCallback?.Invoke();
-					}
+					UpdateFadingOutState();
 				}
+			}
+		}
+
+		private void UpdatePlayingState()
+		{
+			m_TrackTimer -= Time.unscaledDeltaTime;
+			if (m_TrackTimer <= 0)
+			{
+				OnFinishedPlaying();
+			}
+			else if (m_TrackTimer <= m_FadeOutTime && m_FadeOutTime < 0f)
+			{
+				m_State = MusicState.FadingOut;
+			}
+		}
+		
+		private void UpdateFadingInState()
+		{
+			m_TrackTimer -= Time.unscaledDeltaTime;
+			m_FadeInTimer -= Time.unscaledDeltaTime;
+			m_Source.volume = Mathf.Clamp((m_FadeInTime - m_FadeInTimer) / m_FadeInTime * m_TargetVolume, 0, m_TargetVolume);
+			if (m_TrackTimer <= 0)
+			{
+				OnFinishedPlaying();
+			}
+			else if (m_FadeInTimer <= 0f)
+			{
+				m_State = MusicState.Playing;
+			}
+		}
+		
+		private void UpdateFadingOutState()
+		{
+			m_TrackTimer -= Time.unscaledDeltaTime;
+			m_FadeOutTimer -= Time.unscaledDeltaTime;
+			m_Source.volume = Mathf.Clamp(m_FadeOutTimer / m_FadeOutTime * m_TargetVolume, m_TargetVolume, 1);
+			if (m_TrackTimer <= 0)
+			{
+				OnFinishedPlaying();
+			}
+			else if (m_FadeOutTimer <= 0f)
+			{
+				SuspendTrack();
+				m_FadeoutCallback?.Invoke();
 			}
 		}
 		

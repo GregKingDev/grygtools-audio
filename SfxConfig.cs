@@ -40,6 +40,10 @@ namespace GrygTools.Audio
 		private Vector2 m_PitchRandomization;
 		public Vector2 PitchRandomization => m_PitchRandomization;
 		
+		[SerializeField]
+		private SpatialAudioConfig m_SpatialAudioConfig;
+		public SpatialAudioConfig SpatialAudioConfig => m_SpatialAudioConfig;
+		
 		public SfxConfig(SfxConfig source)
 		{
 			m_SfxName = source.m_SfxName;
@@ -49,7 +53,7 @@ namespace GrygTools.Audio
 			m_Looping = source.m_Looping;
 			m_ForcePlay = source.m_ForcePlay;
 			m_PitchRandomization = source.m_PitchRandomization;
-			m_PitchRandomization = source.m_PitchRandomization;
+			m_SpatialAudioConfig = source.m_SpatialAudioConfig;
 		}
 
 		public bool IsSet()
