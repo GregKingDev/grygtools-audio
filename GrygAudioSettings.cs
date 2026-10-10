@@ -64,6 +64,10 @@ namespace GrygTools.Audio
 		
 		[SerializeField]
 		public SpatialAudioConfig DefaultSpatialAudioConfig;
+		
+		[SerializeField]
+		public LayerMask WaterLayer;
+		public static LayerMask WaterLayerMask;
 
 		public static GrygAudioSettings GetOrCreateSettings()
 		{
@@ -87,7 +91,7 @@ namespace GrygTools.Audio
 			{
 				Debug.LogError($"Unable to create GrygAudioSettings object, please create at Assets/Resources/AudioSettings.asset or open Project Settings/GrygAudio");
 			}
-			
+			WaterLayerMask = settings.WaterLayer;
 			return settings;
 		}
 
@@ -239,6 +243,7 @@ namespace GrygTools.Audio
 
 		public void OnValidate()
 		{
+			WaterLayerMask = WaterLayer;
 			if (Application.isPlaying && AudioController.Instance != null)
 			{
 				AudioController.Instance.SetMasterVolume(GetMasterVolume());

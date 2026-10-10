@@ -80,6 +80,8 @@ namespace GrygTools.Audio
 			EditorGUILayout.EndHorizontal();
 			
 			EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("DefaultSpatialAudioConfig"));
+			EditorGUILayout.LabelField("Water Layer - Used for water detection for water impact sfx", EditorStyles.boldLabel);
+			EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("WaterLayer"));
 			
 			EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("SfxCategories"));
 			

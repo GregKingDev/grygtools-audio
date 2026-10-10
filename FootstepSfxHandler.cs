@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 namespace GrygTools.Audio
@@ -29,7 +28,6 @@ namespace GrygTools.Audio
 		[SerializeField]
 		private SfxConfig m_SfxConfig;
 		public SfxConfig SfxConfig => m_SfxConfig;
-		private readonly Dictionary<string, SfxConfig> m_SfxConfigLookup = new Dictionary<string, SfxConfig>();
 	}
 	
 	[Serializable]
@@ -112,7 +110,7 @@ namespace GrygTools.Audio
 					SfxConfig sfxConfig;
 					if (m_RayHits[0].collider.TryGetComponent(out Terrain terrain))
 					{
-						var texture = GetDominantTerrainTexture(m_RayHits[0], terrain);
+						var texture = InternalUtils.GetDominantTerrainTexture(m_RayHits[0].point, terrain);
 						Log($"Dominant Terrain Texture: {(texture != null ? texture.name : "null")}", texture);
 
 						if (m_TextureLookup.TryGetValue(texture, out sfxConfig) && sfxConfig.IsSet())
@@ -141,48 +139,6 @@ namespace GrygTools.Audio
 			{
 				AudioController.Instance.PlaySfx(m_DefaultFootstepSfx, gameObject);
 			}
-		}
-		
-		private Texture2D GetDominantTerrainTexture(RaycastHit hit, Terrain terrain)
-		{
-			if (terrain == null) return null;
-
-			TerrainData tData = terrain.terrainData;
-			Vector3 terrainPos = terrain.transform.position;
-
-			float localX = hit.point.x - terrainPos.x;
-			float localZ = hit.point.z - terrainPos.z;
-
-			int mapX = Mathf.FloorToInt((localX / tData.size.x) * tData.alphamapWidth);
-			int mapZ = Mathf.FloorToInt((localZ / tData.size.z) * tData.alphamapHeight);
-
-			float[,,] alphaMaps = tData.GetAlphamaps(mapX, mapZ, 1, 1);
-
-			int dominantLayer = 0;
-			float maxWeight = 0f;
-
-			for (int i = 0; i < alphaMaps.GetLength(2); i++)
-			{
-				if (alphaMaps[0, 0, i] > maxWeight)
-				{
-					maxWeight = alphaMaps[0, 0, i];
-					dominantLayer = i;
-				}
-			}
-			
-			if (dominantLayer == -1) return null;
-
-			if (tData.terrainLayers != null && dominantLayer < tData.terrainLayers.Length)
-			{
-				TerrainLayer currentLayer = tData.terrainLayers[dominantLayer];
-        
-				if (currentLayer != null)
-				{
-					return currentLayer.diffuseTexture;
-				}
-			}
-
-			return null;
 		}
 		
 		private void BuildLookup()
@@ -220,10 +176,10 @@ namespace GrygTools.Audio
 			BuildLookup();
 		}
 		
-		[Conditional("Footstep_Debug")]
+		[Conditional("FOOTSTEP_SFX_DEBUG")]
 		private void Log(string message, UnityEngine.Object context = null)
 		{
-				Debug.Log(message, context);
+				Debug.Log($"FOOTSTEP SFX: {message}", context);
 		}
 	}
 }
