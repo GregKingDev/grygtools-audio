@@ -1,48 +1,11 @@
 ﻿using GrygTools.Utils.Attributes;
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
-namespace GrygTools.Audio
+
+namespace GrygTools.Audio.SfxHandlers
 {
-	[Serializable]
-	public class TextureToFootstepSfx
-	{
-		[SerializeField]
-		private Texture m_Texture;
-		public Texture Texture => m_Texture;
-		
-		[SerializeField]
-		private SfxConfig m_SfxConfig;
-		public SfxConfig SfxConfig => m_SfxConfig;
-	}
-	
-	[Serializable]
-	public class PhysicsMaterialToFootstepSfx
-	{
-		[SerializeField]
-		private PhysicsMaterial m_PhysicsMaterial;
-		public PhysicsMaterial PhysicsMaterial => m_PhysicsMaterial;
-		
-		[SerializeField]
-		private SfxConfig m_SfxConfig;
-		public SfxConfig SfxConfig => m_SfxConfig;
-	}
-	
-	[Serializable]
-	public class TagToFootstepSfx
-	{
-		[SerializeField, Tag]
-		private string m_Tag;
-		public string Tag => m_Tag;
-		
-		[SerializeField]
-		private SfxConfig m_SfxConfig;
-		public SfxConfig SfxConfig => m_SfxConfig;
-		private readonly Dictionary<string, SfxConfig> m_SfxConfigLookup = new Dictionary<string, SfxConfig>();
-	}
-	
 	public class FootstepSfxHandler : MonoBehaviour
 	{
 		[Header("Function must be PlaySfx and string parameter of event must match The set EventName")]
@@ -69,11 +32,12 @@ namespace GrygTools.Audio
 		private float m_CastDistance = 2f;
 		
 		[SerializeField]
-		private List<TextureToFootstepSfx> m_TextureToSfxList = new List<TextureToFootstepSfx>();
+		private List<TexturesToSfx> m_TextureToSfxList = new List<TexturesToSfx>();
 		[SerializeField]
-		private List<PhysicsMaterialToFootstepSfx> m_PhysicsMaterialToSfxList = new List<PhysicsMaterialToFootstepSfx>();
+		private List<PhysicMaterialsToSfx> m_PhysicsMaterialToSfxList = new List<PhysicMaterialsToSfx>();
 		[SerializeField]
-		private List<TagToFootstepSfx> m_TagToSfxList = new List<TagToFootstepSfx>();
+		private List<TagsToSfx> m_TagToSfxList = new List<TagsToSfx>();
+		
 		[SerializeField]
 		private SfxConfig m_DefaultFootstepSfx;
 		
@@ -121,14 +85,18 @@ namespace GrygTools.Audio
 					}
 
 					Log($"Physics Material: {(m_RayHits[0].collider.sharedMaterial == null ? "null" : m_RayHits[0].collider.sharedMaterial.name)}", m_RayHits[0].collider.sharedMaterial);
-					if (m_RayHits[0].collider.sharedMaterial != null && m_PhysicsMaterialLookup.TryGetValue(m_RayHits[0].collider.sharedMaterial, out sfxConfig) && sfxConfig.IsSet())
+					if (m_RayHits[0].collider.sharedMaterial != null 
+					    && m_PhysicsMaterialLookup.TryGetValue(m_RayHits[0].collider.sharedMaterial, out sfxConfig) 
+					    && sfxConfig.IsSet())
 					{
 						AudioController.Instance.PlaySfx(sfxConfig, gameObject);
 						return;
 					}
 
 					Log($"Tag: {(m_RayHits[0].collider == null ? "null" : m_RayHits[0].collider.tag)}", m_RayHits[0].collider);
-					if (!string.IsNullOrEmpty(m_RayHits[0].collider.tag) && m_TagLookup.TryGetValue(m_RayHits[0].collider.tag, out sfxConfig) && sfxConfig.IsSet())
+					if (!string.IsNullOrEmpty(m_RayHits[0].collider.tag) 
+					    && m_TagLookup.TryGetValue(m_RayHits[0].collider.tag, out sfxConfig) 
+					    && sfxConfig.IsSet())
 					{
 						AudioController.Instance.PlaySfx(sfxConfig, gameObject);
 						return;
@@ -144,29 +112,41 @@ namespace GrygTools.Audio
 		private void BuildLookup()
 		{
 			m_PhysicsMaterialLookup.Clear();
-			foreach (PhysicsMaterialToFootstepSfx materialToSfx in m_PhysicsMaterialToSfxList)
+			foreach (PhysicMaterialsToSfx materialToSfx in m_PhysicsMaterialToSfxList)
 			{
-				if (materialToSfx.SfxConfig != null && materialToSfx.PhysicsMaterial != null)
+				foreach (PhysicsMaterial material in materialToSfx.PhysicMaterials)
 				{
-					m_PhysicsMaterialLookup[materialToSfx.PhysicsMaterial] = materialToSfx.SfxConfig;
+					if (!m_PhysicsMaterialLookup.TryAdd(material, materialToSfx.SfxConfig))
+					{
+						Debug.LogWarning($"Duplicate physics material: {material}", this);
+					}
 				}
 			}
 			
 			m_TextureLookup.Clear();
-			foreach (TextureToFootstepSfx textureToSfx in m_TextureToSfxList)
+			foreach (TexturesToSfx textureToSfx in m_TextureToSfxList)
 			{
-				if (textureToSfx.SfxConfig != null && textureToSfx.Texture != null)
+				foreach (Texture texture in textureToSfx.Textures)
 				{
-					m_TextureLookup[textureToSfx.Texture] = textureToSfx.SfxConfig;
+					if(!m_TextureLookup.TryAdd(texture, textureToSfx.SfxConfig))
+					{
+						Debug.LogWarning($"Duplicate texture: {texture}", this);
+					}
 				}
 			}
 			
 			m_TagLookup.Clear();
-			foreach (TagToFootstepSfx tagToSfx in m_TagToSfxList)
+			foreach (TagsToSfx tagToSfx in m_TagToSfxList)
 			{
-				if (tagToSfx.SfxConfig != null && !string.IsNullOrEmpty(tagToSfx.Tag))
+				foreach (var tagEntry in tagToSfx.Tags)
 				{
-					m_TagLookup[tagToSfx.Tag] = tagToSfx.SfxConfig;
+					if(!string.IsNullOrEmpty(tagEntry))
+					{
+						if(!m_TagLookup.TryAdd(tagEntry, tagToSfx.SfxConfig))
+						{
+							Debug.LogWarning($"Duplicate tag: {tagEntry}", this);
+						}
+					}
 				}
 			}
 		}
@@ -177,7 +157,7 @@ namespace GrygTools.Audio
 		}
 		
 		[Conditional("FOOTSTEP_SFX_DEBUG")]
-		private void Log(string message, UnityEngine.Object context = null)
+		private void Log(string message, Object context = null)
 		{
 				Debug.Log($"FOOTSTEP SFX: {message}", context);
 		}
