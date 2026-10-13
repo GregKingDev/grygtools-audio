@@ -3,9 +3,9 @@ using UnityEngine;
 namespace GrygTools.Audio.SfxHandlers
 {
 	[System.Serializable]
-	public struct PhysicMaterialsToSfx
+	public class PhysicsMaterialsToSfx
 	{
-		public PhysicsMaterial[] PhysicMaterials;
+		public PhysicsMaterial[] PhysicsMaterials;
 		public SfxConfig SfxConfig;
 	}
 

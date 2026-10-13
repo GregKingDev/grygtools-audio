@@ -97,6 +97,8 @@ namespace GrygTools.Audio
 				musicSettings.RunMusicValidation();
 			}
 			
+			EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("CollisionTags"));
+			
 			m_CustomSettings.ApplyModifiedPropertiesWithoutUndo();
 		}
 

@@ -34,7 +34,7 @@ namespace GrygTools.Audio.SfxHandlers
 		[SerializeField]
 		private List<TexturesToSfx> m_TextureToSfxList = new List<TexturesToSfx>();
 		[SerializeField]
-		private List<PhysicMaterialsToSfx> m_PhysicsMaterialToSfxList = new List<PhysicMaterialsToSfx>();
+		private List<PhysicsMaterialsToSfx> m_PhysicsMaterialToSfxList = new List<PhysicsMaterialsToSfx>();
 		[SerializeField]
 		private List<TagsToSfx> m_TagToSfxList = new List<TagsToSfx>();
 		
@@ -112,9 +112,9 @@ namespace GrygTools.Audio.SfxHandlers
 		private void BuildLookup()
 		{
 			m_PhysicsMaterialLookup.Clear();
-			foreach (PhysicMaterialsToSfx materialToSfx in m_PhysicsMaterialToSfxList)
+			foreach (PhysicsMaterialsToSfx materialToSfx in m_PhysicsMaterialToSfxList)
 			{
-				foreach (PhysicsMaterial material in materialToSfx.PhysicMaterials)
+				foreach (PhysicsMaterial material in materialToSfx.PhysicsMaterials)
 				{
 					if (!m_PhysicsMaterialLookup.TryAdd(material, materialToSfx.SfxConfig))
 					{
