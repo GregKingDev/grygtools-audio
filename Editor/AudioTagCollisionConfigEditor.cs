@@ -92,6 +92,11 @@ namespace GrygTools.Audio
                 impulseRangeList.DoLayoutList();
             }
             
+            if (GUILayout.Button("Fix Ranges", GUILayout.Height(30)))
+            {
+                config.FixRanges();
+            }
+            
             serializedObject.ApplyModifiedProperties();
         }
 

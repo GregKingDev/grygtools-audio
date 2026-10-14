@@ -8,8 +8,7 @@ namespace GrygTools.Audio
 	public class ImpulseRangeCollisionSfx
 	{
 		[SerializeField,MinAndMaxRangeVec2(0f, 10000)]
-		private Vector2 m_ImpulseRange = new Vector2(0, 10000);
-		internal Vector2 ImpulseRange => m_ImpulseRange;
+		internal Vector2 m_ImpulseRange = new Vector2(0, 10000);
 		[SerializeField]
 		private AudioCollisionSfx[] m_CollisionSfx;
 		internal AudioCollisionSfx[] CollisionSfx => m_CollisionSfx;
@@ -32,6 +31,7 @@ namespace GrygTools.Audio
 		private void OnValidate()
 		{
 			ValidatePairs();
+			ValidateRanges();
 		}
 
 		private void ValidatePairs()
@@ -98,7 +98,7 @@ namespace GrygTools.Audio
 			for (int i = 0; i < m_ImpulseRangeCollisionSfx.Length; i++)
 			{
 				var range = m_ImpulseRangeCollisionSfx[i];
-				if (impulse >= range.ImpulseRange.x && impulse <= range.ImpulseRange.y)
+				if (impulse >= range.m_ImpulseRange.x && impulse <= range.m_ImpulseRange.y)
 				{
 					collisionSfxDict = m_CollisionSfxDictPerRange[i];
 					return true;
@@ -106,6 +106,58 @@ namespace GrygTools.Audio
 			}
 			collisionSfxDict = null;
 			return false;
+		}
+		
+		private void ValidateRanges()
+		{
+			// Array.Sort(m_ImpulseRangeCollisionSfx, (a, b) => a.m_ImpulseRange.x.CompareTo(b.m_ImpulseRange.x));
+			for(int i = 0; i < m_ImpulseRangeCollisionSfx.Length - 1; i++)
+			{
+				if (i > 0)
+				{
+					for (int j = i + 1; j < m_ImpulseRangeCollisionSfx.Length; j++)
+					{
+						if(m_ImpulseRangeCollisionSfx[i].m_ImpulseRange.x > m_ImpulseRangeCollisionSfx[j].m_ImpulseRange.x
+						   && m_ImpulseRangeCollisionSfx[i].m_ImpulseRange.x < m_ImpulseRangeCollisionSfx[j].m_ImpulseRange.y)
+						{
+							Debug.LogWarning(
+								$"ImpactRange at index {i} has an impulse range that overlaps with another range. Please ensure that each SFX has a unique impulse range.");
+							continue;
+						}
+						if (m_ImpulseRangeCollisionSfx[i].m_ImpulseRange.y > m_ImpulseRangeCollisionSfx[j].m_ImpulseRange.x
+						    && m_ImpulseRangeCollisionSfx[i].m_ImpulseRange.y < m_ImpulseRangeCollisionSfx[j].m_ImpulseRange.y)
+						{
+							Debug.LogWarning(
+								$"ImpactRange at index {i} has an impulse range that overlaps with another range. Please ensure that each SFX has a unique impulse range.");
+							continue;
+						}
+					}
+				}
+			}
+		}
+
+		internal void FixRanges()
+		{
+			bool changes = false;
+			Array.Sort(m_ImpulseRangeCollisionSfx, (a, b) => a.m_ImpulseRange.x.CompareTo(b.m_ImpulseRange.x));
+			for(int i = 0; i < m_ImpulseRangeCollisionSfx.Length; i++)
+			{
+				if(i > 0 && m_ImpulseRangeCollisionSfx[i].m_ImpulseRange.x < m_ImpulseRangeCollisionSfx[i - 1].m_ImpulseRange.y)	
+				{
+					if (m_ImpulseRangeCollisionSfx[i].m_ImpulseRange.y < m_ImpulseRangeCollisionSfx[i - 1].m_ImpulseRange.y)
+					{
+						m_ImpulseRangeCollisionSfx[i].m_ImpulseRange.y = m_ImpulseRangeCollisionSfx[i - 1].m_ImpulseRange.y + 1;
+					}
+					m_ImpulseRangeCollisionSfx[i].m_ImpulseRange.x = m_ImpulseRangeCollisionSfx[i - 1].m_ImpulseRange.y;
+					Debug.LogWarning($"ImpactRange at index {i} has an impulse range that overlaps with the previous SFX. Adjusting");
+					changes = true;
+				}
+			}
+
+			if (changes)
+			{
+				FixRanges();
+			}
 		}
 	}
 }
