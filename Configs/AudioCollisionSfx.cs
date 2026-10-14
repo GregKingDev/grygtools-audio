@@ -1,5 +1,6 @@
 ﻿using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 namespace GrygTools.Audio
 {
 	[Serializable]
@@ -13,13 +14,13 @@ namespace GrygTools.Audio
 		[AudioCollisionTag]
 		public AudioCollisionTag AudioCollisionTag2;
 		
+		[FormerlySerializedAs("SfxKey")]
 		[SerializeField]
-		[SfxKeyProperty]
-		public string SfxKey;
+		public SfxConfig SfxConfig;
 		
 		public override string ToString()
 		{
-			return $"{AudioCollisionTag1} - {AudioCollisionTag2} -> {SfxKey}";
+			return $"{AudioCollisionTag1} - {AudioCollisionTag2} -> {SfxConfig.SfxName}";
 		}
 	}
 }

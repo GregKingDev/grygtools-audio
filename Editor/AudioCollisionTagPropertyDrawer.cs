@@ -34,7 +34,7 @@ namespace GrygTools.Audio
 			{
 				currentIndex = strings.Count - 1;
 			}
-			int newIndex = EditorGUI.Popup(position, "Select Tag:", currentIndex, strings.ToArray());
+			int newIndex = EditorGUI.Popup(position, "Audio Collision Tag:", currentIndex, strings.ToArray());
 
 			if (newIndex != currentIndex)
 			{

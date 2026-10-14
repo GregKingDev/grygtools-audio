@@ -79,7 +79,7 @@ namespace GrygTools.Audio
 		}
 
 		private GrygAudioSettings m_AudioSettings;
-		private GrygAudioSettings AudioSettings
+		internal GrygAudioSettings AudioSettings
 		{
 			get
 			{

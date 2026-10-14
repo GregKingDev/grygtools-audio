@@ -47,6 +47,9 @@ namespace GrygTools.Audio.SfxHandlers
 	[RequireComponent(typeof(Collider))]
 	public class ImpactSfxHandler : MonoBehaviour
 	{
+		[SerializeField, AudioCollisionTag]
+		private AudioCollisionTag m_AudioCollisionTag;
+		
 		[SerializeField]
 		private ImpactRange[] m_ImpactRanges;
 
@@ -114,6 +117,16 @@ namespace GrygTools.Audio.SfxHandlers
 				return;
 			}
 
+			if (collision.gameObject.TryGetComponent(out ImpactSfxHandler otherImpactSfxHandler))
+			{
+				// Only the higher instance ID will play the SFX to avoid double playing
+				if(gameObject.GetInstanceID() > otherImpactSfxHandler.gameObject.GetInstanceID())
+				{
+					return;
+				}
+				PlaySfxForTagType(otherImpactSfxHandler.m_AudioCollisionTag, collision.impulse.sqrMagnitude);
+			}
+
 			ImpactRange[] ranges = m_InWater ? m_UnderWaterImpactRanges : m_ImpactRanges;
 			
 			for (int i = 0; i < ranges.Length; i++)
@@ -158,6 +171,15 @@ namespace GrygTools.Audio.SfxHandlers
 						AudioController.Instance.PlaySfx(ranges[i].m_DefaultImpactSfx, gameObject);
 					}
 				}
+			}
+		}
+
+		public void PlaySfxForTagType(AudioCollisionTag otherAudioTag, float impulseSquared)
+		{
+			if (AudioController.Instance.AudioSettings.DefaultAudioTagCollisionConfig.TryGetSfxKeyForCollision(m_AudioCollisionTag,
+				    otherAudioTag, out SfxConfig sfxConfig))
+			{
+				AudioController.Instance.PlaySfx(sfxConfig, gameObject);
 			}
 		}
 

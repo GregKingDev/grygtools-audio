@@ -70,6 +70,9 @@ namespace GrygTools.Audio
 		public static LayerMask WaterLayerMask;
 		
 		[SerializeField]
+		public AudioTagCollisionConfig DefaultAudioTagCollisionConfig;
+		
+		[SerializeField]
 		public List<AudioCollisionTag> CollisionTags;
 		internal string[] CollisionTagsStrings;
 
