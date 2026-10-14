@@ -1,7 +1,6 @@
 ﻿using GrygTools.Utils.Attributes;
 using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using UnityEngine;
 namespace GrygTools.Audio
 {
@@ -10,8 +9,10 @@ namespace GrygTools.Audio
 	{
 		[SerializeField,MinAndMaxRangeVec2(0f, 10000)]
 		private Vector2 m_ImpulseRange = new Vector2(0, 10000);
+		internal Vector2 ImpulseRange => m_ImpulseRange;
 		[SerializeField]
 		private AudioCollisionSfx[] m_CollisionSfx;
+		internal AudioCollisionSfx[] CollisionSfx => m_CollisionSfx;
 	}
 	
 	[CreateAssetMenu(fileName = "AudioTagCollisionConfig", menuName = "GrygTools/Audio Tag Collision Config")]
@@ -19,12 +20,14 @@ namespace GrygTools.Audio
 	{
 		[SerializeField]
 		private ImpulseRangeCollisionSfx[] m_ImpulseRangeCollisionSfx;
-
-		private readonly Dictionary<(AudioCollisionTag, AudioCollisionTag), SfxConfig> m_CollisionSfxDict = new Dictionary<(AudioCollisionTag, AudioCollisionTag), SfxConfig>();
-		internal Dictionary<(AudioCollisionTag, AudioCollisionTag), SfxConfig> CollisionSfxDict => m_CollisionSfxDict;
 		
-		private readonly HashSet<(AudioCollisionTag, AudioCollisionTag)> m_Duplicates = new HashSet<(AudioCollisionTag, AudioCollisionTag)>();
-		internal HashSet<(AudioCollisionTag, AudioCollisionTag)> Duplicates => m_Duplicates;
+		private readonly List<Dictionary<(AudioCollisionTag, AudioCollisionTag), SfxConfig>> m_CollisionSfxDictPerRange = new List<Dictionary<(AudioCollisionTag, AudioCollisionTag), SfxConfig>>();
+		internal List<Dictionary<(AudioCollisionTag, AudioCollisionTag), SfxConfig>> CollisionSfxDictPerRange => m_CollisionSfxDictPerRange;
+
+		internal List<HashSet<(AudioCollisionTag, AudioCollisionTag)>> DuplicatesPerRange
+		{
+			get; private set;
+		} = new List<HashSet<(AudioCollisionTag, AudioCollisionTag)>>();
 
 		private void OnValidate()
 		{
@@ -33,49 +36,76 @@ namespace GrygTools.Audio
 
 		private void ValidatePairs()
 		{
-			m_CollisionSfxDict.Clear();
-			m_Duplicates.Clear();
+			m_CollisionSfxDictPerRange.Clear();
+			DuplicatesPerRange.Clear();
 			HashSet<(AudioCollisionTag, AudioCollisionTag)> uniquePairs = new HashSet<(AudioCollisionTag, AudioCollisionTag)>();
-			// foreach (AudioCollisionSfx collisionSfx in m_CollisionSfx)
-			// {
-			// 	//Special case for if both items are the same
-			// 	if(collisionSfx.AudioCollisionTag1 == collisionSfx.AudioCollisionTag2)
-			// 	{
-			// 		if (uniquePairs.Add((collisionSfx.AudioCollisionTag1, collisionSfx.AudioCollisionTag2)))
-			// 		{
-			// 			m_CollisionSfxDict.Add((collisionSfx.AudioCollisionTag1, collisionSfx.AudioCollisionTag2), collisionSfx.SfxConfig);
-			// 		}
-			// 		else
-			// 		{
-			// 			m_Duplicates.Add((collisionSfx.AudioCollisionTag2, collisionSfx.AudioCollisionTag1));
-			// 			Debug.LogWarning($"Duplicate collision pair found: {collisionSfx.AudioCollisionTag1} - {collisionSfx.AudioCollisionTag2}. Only the first occurrence will be used.", this);
-			// 		}
-			// 	}
-			// 	else if (uniquePairs.Add((collisionSfx.AudioCollisionTag1, collisionSfx.AudioCollisionTag2))
-			// 	         && uniquePairs.Add((collisionSfx.AudioCollisionTag2, collisionSfx.AudioCollisionTag1)))
-			// 	{
-			// 		m_CollisionSfxDict.Add((collisionSfx.AudioCollisionTag1, collisionSfx.AudioCollisionTag2), collisionSfx.SfxConfig);
-			// 	}
-			// 	else
-			// 	{
-			// 		m_Duplicates.Add((collisionSfx.AudioCollisionTag1, collisionSfx.AudioCollisionTag2));
-			// 		m_Duplicates.Add((collisionSfx.AudioCollisionTag2, collisionSfx.AudioCollisionTag1));
-			// 		Debug.LogWarning($"Duplicate collision pair found: {collisionSfx.AudioCollisionTag1} - {collisionSfx.AudioCollisionTag2}. Only the first occurrence will be used.", this);
-			// 	}
-			// }
+			int index = 0;
+			foreach (ImpulseRangeCollisionSfx collisionSfxRange in m_ImpulseRangeCollisionSfx)
+			{
+				uniquePairs.Clear();
+				var rangeDuplicates = new HashSet<(AudioCollisionTag, AudioCollisionTag)>();
+				DuplicatesPerRange.Add(rangeDuplicates);
+				
+				var collisionSfxDict = new Dictionary<(AudioCollisionTag, AudioCollisionTag), SfxConfig>();
+				m_CollisionSfxDictPerRange.Add(collisionSfxDict);
+				
+				foreach (AudioCollisionSfx collisionSfx in collisionSfxRange.CollisionSfx)
+				{
+					//Special case for if both items are the same
+					if(collisionSfx.AudioCollisionTag1 == collisionSfx.AudioCollisionTag2)
+					{
+						if (uniquePairs.Add((collisionSfx.AudioCollisionTag1, collisionSfx.AudioCollisionTag2)))
+						{
+							collisionSfxDict.Add((collisionSfx.AudioCollisionTag1, collisionSfx.AudioCollisionTag2), collisionSfx.SfxConfig);
+						}
+						else
+						{
+							rangeDuplicates.Add((collisionSfx.AudioCollisionTag2, collisionSfx.AudioCollisionTag1));
+							Debug.LogWarning($"Duplicate collision pair found: {collisionSfx.AudioCollisionTag1} - {collisionSfx.AudioCollisionTag2}. Only the first occurrence will be used.", this);
+						}
+					}
+					else if (uniquePairs.Add((collisionSfx.AudioCollisionTag1, collisionSfx.AudioCollisionTag2))
+					         && uniquePairs.Add((collisionSfx.AudioCollisionTag2, collisionSfx.AudioCollisionTag1)))
+					{
+						collisionSfxDict.Add((collisionSfx.AudioCollisionTag1, collisionSfx.AudioCollisionTag2), collisionSfx.SfxConfig);
+					}
+					else
+					{
+						rangeDuplicates.Add((collisionSfx.AudioCollisionTag1, collisionSfx.AudioCollisionTag2));
+						rangeDuplicates.Add((collisionSfx.AudioCollisionTag2, collisionSfx.AudioCollisionTag1));
+						Debug.LogWarning($"Duplicate collision pair found: {collisionSfx.AudioCollisionTag1} - {collisionSfx.AudioCollisionTag2}. Only the first occurrence will be used.", this);
+					}
+				}
+				index++;
+			}
 		}
 		
-		public bool TryGetSfxKeyForCollision(AudioCollisionTag tag1, AudioCollisionTag tag2, out SfxConfig sfxConfig)
+		public bool TryGetSfxKeyForCollision(float impulse, AudioCollisionTag tag1, AudioCollisionTag tag2, out SfxConfig sfxConfig)
 		{
-			if (m_CollisionSfxDict.TryGetValue((tag1, tag2), out sfxConfig) || m_CollisionSfxDict.TryGetValue((tag2, tag1), out sfxConfig))
+			sfxConfig = null;
+			if(TryGetCollisionSfxDictForImpulse(impulse, out var collisionSfxDict))
 			{
-				return true;
+				if (collisionSfxDict.TryGetValue((tag1, tag2), out sfxConfig) || collisionSfxDict.TryGetValue((tag2, tag1), out sfxConfig))
+				{
+					return true;
+				}
 			}
-			else
+			return false;
+		}
+		
+		public bool TryGetCollisionSfxDictForImpulse(float impulse, out Dictionary<(AudioCollisionTag, AudioCollisionTag), SfxConfig> collisionSfxDict)
+		{
+			for (int i = 0; i < m_ImpulseRangeCollisionSfx.Length; i++)
 			{
-				sfxConfig = null;
-				return false;
+				var range = m_ImpulseRangeCollisionSfx[i];
+				if (impulse >= range.ImpulseRange.x && impulse <= range.ImpulseRange.y)
+				{
+					collisionSfxDict = m_CollisionSfxDictPerRange[i];
+					return true;
+				}
 			}
+			collisionSfxDict = null;
+			return false;
 		}
 	}
 }

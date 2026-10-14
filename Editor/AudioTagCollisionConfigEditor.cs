@@ -1,4 +1,5 @@
-﻿using UnityEditor;
+﻿using GrygTools.Utils.Extensions;
+using UnityEditor;
 using UnityEditorInternal;
 using UnityEngine;
 using System.Collections.Generic;
@@ -10,6 +11,7 @@ namespace GrygTools.Audio
     {
         private ReorderableList impulseRangeList;
         private Dictionary<string, ReorderableList> collisionsListsPerRange = new();
+        private Dictionary<int, bool> foldoutStates = new();
         private AudioTagCollisionConfig config;
 
         private void OnEnable()
@@ -24,35 +26,53 @@ namespace GrygTools.Audio
                     drawHeaderCallback = rect => EditorGUI.LabelField(rect, "Impulse Range Collision SFX"),
                     drawElementCallback = (rect, index, isActive, isFocused) =>
                     {
+                        EditorGUI.indentLevel++;
+                        if (!foldoutStates.ContainsKey(index))
+                            foldoutStates[index] = false;
+
                         var element = impulseRangeProperty.GetArrayElementAtIndex(index);
                         var rangeProperty = element.FindPropertyRelative("m_ImpulseRange");
                         var collisionsProperty = element.FindPropertyRelative("m_CollisionSfx");
                         string key = $"{impulseRangeProperty.propertyPath}[{index}]";
-                        
+
                         if (!collisionsListsPerRange.ContainsKey(key))
-                            CreateNestedList(key, collisionsProperty);
-                        
+                        {
+                            CreateNestedList(key, collisionsProperty, index);
+                        }
+
                         float y = rect.y;
-                        EditorGUI.PropertyField(new Rect(rect.x, y, rect.width, EditorGUIUtility.singleLineHeight), rangeProperty);
+                        
+                        // Draw foldout and range property
+                        foldoutStates[index] = EditorGUI.Foldout(new Rect(rect.x, y, 15, EditorGUIUtility.singleLineHeight), foldoutStates[index], "");
+                        EditorGUI.PropertyField(new Rect(rect.x, y, rect.width - 15, EditorGUIUtility.singleLineHeight), rangeProperty);
                         y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
                         
-                        if (collisionsListsPerRange.TryGetValue(key, out var list))
+                        // Draw nested list if expanded
+                        if (foldoutStates[index] && collisionsListsPerRange.TryGetValue(key, out var list))
                         {
-                            list.DoList(new Rect(rect.x, y, rect.width, list.GetHeight()));
+                            float indent = EditorGUI.indentLevel * 15;
+                            list.DoList(new Rect(rect.x + indent, y, rect.width - indent, list.GetHeight()));
                         }
+                        EditorGUI.indentLevel--;
                     },
                     elementHeightCallback = index =>
                     {
+                        if (!foldoutStates.ContainsKey(index))
+                            foldoutStates[index] = false;
+
                         var element = impulseRangeProperty.GetArrayElementAtIndex(index);
                         var rangeProperty = element.FindPropertyRelative("m_ImpulseRange");
                         var collisionsProperty = element.FindPropertyRelative("m_CollisionSfx");
                         string key = $"{impulseRangeProperty.propertyPath}[{index}]";
                         
                         if (!collisionsListsPerRange.ContainsKey(key))
-                            CreateNestedList(key, collisionsProperty);
-                        
+                        {
+                            CreateNestedList(key, collisionsProperty, index);
+                        }
+
                         float height = EditorGUI.GetPropertyHeight(rangeProperty) + EditorGUIUtility.standardVerticalSpacing;
-                        if (collisionsListsPerRange.TryGetValue(key, out var list))
+                        
+                        if (foldoutStates[index] && collisionsListsPerRange.TryGetValue(key, out var list))
                             height += list.GetHeight();
                         
                         return height;
@@ -75,7 +95,7 @@ namespace GrygTools.Audio
             serializedObject.ApplyModifiedProperties();
         }
 
-        private void CreateNestedList(string key, SerializedProperty collisionsProperty)
+        private void CreateNestedList(string key, SerializedProperty collisionsProperty, int impulseRangeIndex)
         {
             var list = new ReorderableList(serializedObject, collisionsProperty, true, true, true, true)
             {
@@ -87,15 +107,24 @@ namespace GrygTools.Audio
                     var tag2 = element.FindPropertyRelative("AudioCollisionTag2").FindPropertyRelative("_value").stringValue;
                     var sfxKey = element.FindPropertyRelative("SfxConfig").FindPropertyRelative("m_SfxName").stringValue;
                     
-                    bool duplicate = config.Duplicates.Contains((new AudioCollisionTag(tag1), new AudioCollisionTag(tag2)))
-                        || config.Duplicates.Contains((new AudioCollisionTag(tag2), new AudioCollisionTag(tag1)));
+                    // duplicate check needs to be fixed up. it will need to be remade into a dictionary to be able to check for duplicates properly.
+                    // The dictionary will need to be keyed off the ImpulseRangeCollisionSfx entries then they'll need to be found here and used to find the right dupe list
+                    bool duplicate = false;
+                    if( config.DuplicatesPerRange.Count > impulseRangeIndex)
+                    {
+                        var duplicatesList = config.DuplicatesPerRange[impulseRangeIndex];
+                        duplicate = duplicatesList.Contains((new AudioCollisionTag(tag1), new AudioCollisionTag(tag2)))
+                            || duplicatesList.Contains((new AudioCollisionTag(tag2), new AudioCollisionTag(tag1)));
+                    }
                     
                     var oldColor = GUI.color;
                     if (duplicate)
                         GUI.color = Color.lightPink;
                     
                     string label = $"{tag1} - {tag2} -> {sfxKey}";
+                    EditorGUI.indentLevel++;
                     EditorGUI.PropertyField(rect, element, new GUIContent(label), true);
+                    EditorGUI.indentLevel--;
                     GUI.color = oldColor;
                 },
                 elementHeightCallback = index =>

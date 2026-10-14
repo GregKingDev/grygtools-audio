@@ -176,7 +176,7 @@ namespace GrygTools.Audio.SfxHandlers
 
 		public void PlaySfxForTagType(AudioCollisionTag otherAudioTag, float impulseSquared)
 		{
-			if (AudioController.Instance.AudioSettings.DefaultAudioTagCollisionConfig.TryGetSfxKeyForCollision(m_AudioCollisionTag,
+			if (AudioController.Instance.AudioSettings.DefaultAudioTagCollisionConfig.TryGetSfxKeyForCollision(impulseSquared, m_AudioCollisionTag,
 				    otherAudioTag, out SfxConfig sfxConfig))
 			{
 				AudioController.Instance.PlaySfx(sfxConfig, gameObject);
