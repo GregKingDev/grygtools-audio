@@ -10,8 +10,12 @@ namespace GrygTools.Audio
 		[SerializeField,MinAndMaxRangeVec2(0f, 10000)]
 		internal Vector2 m_ImpulseRange = new Vector2(0, 10000);
 		[SerializeField]
-		private AudioCollisionSfx[] m_CollisionSfx;
-		internal AudioCollisionSfx[] CollisionSfx => m_CollisionSfx;
+		private AudioTagCollisionSfx[] m_CollisionSfx;
+		internal AudioTagCollisionSfx[] CollisionSfx => m_CollisionSfx;
+
+		[SerializeField]
+		private AudioTagToTextureCollisionSfx[] m_TextureCollisionSfx;
+		internal AudioTagToTextureCollisionSfx[] TextureCollisionSfx => m_TextureCollisionSfx;
 	}
 	
 	[CreateAssetMenu(fileName = "AudioTagCollisionConfig", menuName = "GrygTools/Audio Tag Collision Config")]
@@ -49,7 +53,7 @@ namespace GrygTools.Audio
 				var collisionSfxDict = new Dictionary<(AudioCollisionTag, AudioCollisionTag), SfxConfig>();
 				m_CollisionSfxDictPerRange.Add(collisionSfxDict);
 				
-				foreach (AudioCollisionSfx collisionSfx in collisionSfxRange.CollisionSfx)
+				foreach (AudioTagCollisionSfx collisionSfx in collisionSfxRange.CollisionSfx)
 				{
 					//Special case for if both items are the same
 					if(collisionSfx.AudioCollisionTag1 == collisionSfx.AudioCollisionTag2)

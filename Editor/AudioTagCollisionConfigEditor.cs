@@ -9,8 +9,14 @@ namespace GrygTools.Audio
     [CustomEditor(typeof(AudioTagCollisionConfig))]
     public class AudioTagCollisionConfigEditor : Editor
     {
+        private class RangeListsPair
+        {
+            public ReorderableList CollisionsList;
+            public ReorderableList TextureCollisionsList;
+        }
+
         private ReorderableList impulseRangeList;
-        private Dictionary<string, ReorderableList> collisionsListsPerRange = new();
+        private Dictionary<string, RangeListsPair> listsPerRange = new();
         private Dictionary<int, bool> foldoutStates = new();
         private AudioTagCollisionConfig config;
 
@@ -33,11 +39,12 @@ namespace GrygTools.Audio
                         var element = impulseRangeProperty.GetArrayElementAtIndex(index);
                         var rangeProperty = element.FindPropertyRelative("m_ImpulseRange");
                         var collisionsProperty = element.FindPropertyRelative("m_CollisionSfx");
+                        var textureCollisionsProperty = element.FindPropertyRelative("m_TextureCollisionSfx");
                         string key = $"{impulseRangeProperty.propertyPath}[{index}]";
 
-                        if (!collisionsListsPerRange.ContainsKey(key))
+                        if (!listsPerRange.ContainsKey(key))
                         {
-                            CreateNestedList(key, collisionsProperty, index);
+                            CreateNestedLists(key, collisionsProperty, textureCollisionsProperty, index);
                         }
 
                         float y = rect.y;
@@ -47,11 +54,13 @@ namespace GrygTools.Audio
                         EditorGUI.PropertyField(new Rect(rect.x, y, rect.width - 15, EditorGUIUtility.singleLineHeight), rangeProperty);
                         y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
                         
-                        // Draw nested list if expanded
-                        if (foldoutStates[index] && collisionsListsPerRange.TryGetValue(key, out var list))
+                        // Draw nested lists if expanded
+                        if (foldoutStates[index] && listsPerRange.TryGetValue(key, out var listPair))
                         {
                             float indent = EditorGUI.indentLevel * 15;
-                            list.DoList(new Rect(rect.x + indent, y, rect.width - indent, list.GetHeight()));
+                            listPair.CollisionsList.DoList(new Rect(rect.x + indent, y, rect.width - indent, listPair.CollisionsList.GetHeight()));
+                            y += listPair.CollisionsList.GetHeight() + EditorGUIUtility.standardVerticalSpacing;
+                            listPair.TextureCollisionsList.DoList(new Rect(rect.x + indent, y, rect.width - indent, listPair.TextureCollisionsList.GetHeight()));
                         }
                         EditorGUI.indentLevel--;
                     },
@@ -63,17 +72,21 @@ namespace GrygTools.Audio
                         var element = impulseRangeProperty.GetArrayElementAtIndex(index);
                         var rangeProperty = element.FindPropertyRelative("m_ImpulseRange");
                         var collisionsProperty = element.FindPropertyRelative("m_CollisionSfx");
+                        var textureCollisionsProperty = element.FindPropertyRelative("m_TextureCollisionSfx");
                         string key = $"{impulseRangeProperty.propertyPath}[{index}]";
                         
-                        if (!collisionsListsPerRange.ContainsKey(key))
+                        if (!listsPerRange.ContainsKey(key))
                         {
-                            CreateNestedList(key, collisionsProperty, index);
+                            CreateNestedLists(key, collisionsProperty, textureCollisionsProperty, index);
                         }
 
                         float height = EditorGUI.GetPropertyHeight(rangeProperty) + EditorGUIUtility.standardVerticalSpacing;
                         
-                        if (foldoutStates[index] && collisionsListsPerRange.TryGetValue(key, out var list))
-                            height += list.GetHeight();
+                        if (foldoutStates[index] && listsPerRange.TryGetValue(key, out var listPair))
+                        {
+                            height += listPair.CollisionsList.GetHeight() + EditorGUIUtility.standardVerticalSpacing;
+                            height += listPair.TextureCollisionsList.GetHeight();
+                        }
                         
                         return height;
                     }
@@ -100,9 +113,9 @@ namespace GrygTools.Audio
             serializedObject.ApplyModifiedProperties();
         }
 
-        private void CreateNestedList(string key, SerializedProperty collisionsProperty, int impulseRangeIndex)
+        private void CreateNestedLists(string key, SerializedProperty collisionsProperty, SerializedProperty textureCollisionsProperty, int impulseRangeIndex)
         {
-            var list = new ReorderableList(serializedObject, collisionsProperty, true, true, true, true)
+            var collisionsList = new ReorderableList(serializedObject, collisionsProperty, true, true, true, true)
             {
                 drawHeaderCallback = rect => EditorGUI.LabelField(rect, "Audio Collision SFX"),
                 drawElementCallback = (rect, index, isActive, isFocused) =>
@@ -122,8 +135,6 @@ namespace GrygTools.Audio
                         sfxKey = element.FindPropertyRelative("SfxConfig")?.FindPropertyRelative("m_SfxName").stringValue;                        
                     }
                     
-                    // duplicate check needs to be fixed up. it will need to be remade into a dictionary to be able to check for duplicates properly.
-                    // The dictionary will need to be keyed off the ImpulseRangeCollisionSfx entries then they'll need to be found here and used to find the right dupe list
                     bool duplicate = false;
                     if( config.DuplicatesPerRange.Count > impulseRangeIndex)
                     {
@@ -148,8 +159,25 @@ namespace GrygTools.Audio
                     return EditorGUI.GetPropertyHeight(element) + EditorGUIUtility.standardVerticalSpacing;
                 }
             };
+
+            var textureCollisionsList = new ReorderableList(serializedObject, textureCollisionsProperty, true, true, true, true)
+            {
+                drawHeaderCallback = rect => EditorGUI.LabelField(rect, "Texture Collision SFX"),
+                drawElementCallback = (rect, index, isActive, isFocused) =>
+                {
+                    var element = textureCollisionsProperty.GetArrayElementAtIndex(index);
+                    EditorGUI.indentLevel++;
+                    EditorGUI.PropertyField(rect, element, true);
+                    EditorGUI.indentLevel--;
+                },
+                elementHeightCallback = index =>
+                {
+                    var element = textureCollisionsProperty.GetArrayElementAtIndex(index);
+                    return EditorGUI.GetPropertyHeight(element) + EditorGUIUtility.standardVerticalSpacing;
+                }
+            };
             
-            collisionsListsPerRange[key] = list;
+            listsPerRange[key] = new RangeListsPair { CollisionsList = collisionsList, TextureCollisionsList = textureCollisionsList };
         }
     }
 }
