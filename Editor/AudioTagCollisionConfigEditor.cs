@@ -17,7 +17,9 @@ namespace GrygTools.Audio
 
         private ReorderableList impulseRangeList;
         private Dictionary<string, RangeListsPair> listsPerRange = new();
-        private Dictionary<int, bool> foldoutStates = new();
+        private Dictionary<int, bool> rangeFoldoutStates = new();
+        private Dictionary<string, bool> collisionsFoldoutStates = new();
+        private Dictionary<string, bool> textureCollisionsFoldoutStates = new();
         private AudioTagCollisionConfig config;
 
         private void OnEnable()
@@ -33,8 +35,8 @@ namespace GrygTools.Audio
                     drawElementCallback = (rect, index, isActive, isFocused) =>
                     {
                         EditorGUI.indentLevel++;
-                        if (!foldoutStates.ContainsKey(index))
-                            foldoutStates[index] = false;
+                        if (!rangeFoldoutStates.ContainsKey(index))
+                            rangeFoldoutStates[index] = false;
 
                         var element = impulseRangeProperty.GetArrayElementAtIndex(index);
                         var rangeProperty = element.FindPropertyRelative("m_ImpulseRange");
@@ -50,24 +52,47 @@ namespace GrygTools.Audio
                         float y = rect.y;
                         
                         // Draw foldout and range property
-                        foldoutStates[index] = EditorGUI.Foldout(new Rect(rect.x, y, 15, EditorGUIUtility.singleLineHeight), foldoutStates[index], "");
+                        rangeFoldoutStates[index] = EditorGUI.Foldout(new Rect(rect.x, y, 15, EditorGUIUtility.singleLineHeight), rangeFoldoutStates[index], "");
                         EditorGUI.PropertyField(new Rect(rect.x, y, rect.width - 15, EditorGUIUtility.singleLineHeight), rangeProperty);
                         y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
                         
                         // Draw nested lists if expanded
-                        if (foldoutStates[index] && listsPerRange.TryGetValue(key, out var listPair))
+                        if (rangeFoldoutStates[index] && listsPerRange.TryGetValue(key, out var listPair))
                         {
                             float indent = EditorGUI.indentLevel * 15;
-                            listPair.CollisionsList.DoList(new Rect(rect.x + indent, y, rect.width - indent, listPair.CollisionsList.GetHeight()));
-                            y += listPair.CollisionsList.GetHeight() + EditorGUIUtility.standardVerticalSpacing;
-                            listPair.TextureCollisionsList.DoList(new Rect(rect.x + indent, y, rect.width - indent, listPair.TextureCollisionsList.GetHeight()));
+                            string collisionsKey = key + "_collisions";
+                            string textureCollisionsKey = key + "_textureCollisions";
+                            
+                            if (!collisionsFoldoutStates.ContainsKey(collisionsKey))
+                                collisionsFoldoutStates[collisionsKey] = true;
+                            if (!textureCollisionsFoldoutStates.ContainsKey(textureCollisionsKey))
+                                textureCollisionsFoldoutStates[textureCollisionsKey] = true;
+                            
+                            // Draw Audio Collision SFX foldout and list
+                            collisionsFoldoutStates[collisionsKey] = EditorGUI.Foldout(new Rect(rect.x + indent, y, rect.width - indent, EditorGUIUtility.singleLineHeight), collisionsFoldoutStates[collisionsKey], "Audio Collision SFX");
+                            y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
+                            
+                            if (collisionsFoldoutStates[collisionsKey])
+                            {
+                                listPair.CollisionsList.DoList(new Rect(rect.x + indent, y, rect.width - indent, listPair.CollisionsList.GetHeight()));
+                                y += listPair.CollisionsList.GetHeight() + EditorGUIUtility.standardVerticalSpacing;
+                            }
+                            
+                            // Draw Texture Collision SFX foldout and list
+                            textureCollisionsFoldoutStates[textureCollisionsKey] = EditorGUI.Foldout(new Rect(rect.x + indent, y, rect.width - indent, EditorGUIUtility.singleLineHeight), textureCollisionsFoldoutStates[textureCollisionsKey], "Texture Collision SFX");
+                            y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
+                            
+                            if (textureCollisionsFoldoutStates[textureCollisionsKey])
+                            {
+                                listPair.TextureCollisionsList.DoList(new Rect(rect.x + indent, y, rect.width - indent, listPair.TextureCollisionsList.GetHeight()));
+                            }
                         }
                         EditorGUI.indentLevel--;
                     },
                     elementHeightCallback = index =>
                     {
-                        if (!foldoutStates.ContainsKey(index))
-                            foldoutStates[index] = false;
+                        if (!rangeFoldoutStates.ContainsKey(index))
+                            rangeFoldoutStates[index] = false;
 
                         var element = impulseRangeProperty.GetArrayElementAtIndex(index);
                         var rangeProperty = element.FindPropertyRelative("m_ImpulseRange");
@@ -82,10 +107,23 @@ namespace GrygTools.Audio
 
                         float height = EditorGUI.GetPropertyHeight(rangeProperty) + EditorGUIUtility.standardVerticalSpacing;
                         
-                        if (foldoutStates[index] && listsPerRange.TryGetValue(key, out var listPair))
+                        if (rangeFoldoutStates[index] && listsPerRange.TryGetValue(key, out var listPair))
                         {
-                            height += listPair.CollisionsList.GetHeight() + EditorGUIUtility.standardVerticalSpacing;
-                            height += listPair.TextureCollisionsList.GetHeight();
+                            string collisionsKey = key + "_collisions";
+                            string textureCollisionsKey = key + "_textureCollisions";
+                            
+                            if (!collisionsFoldoutStates.ContainsKey(collisionsKey))
+                                collisionsFoldoutStates[collisionsKey] = true;
+                            if (!textureCollisionsFoldoutStates.ContainsKey(textureCollisionsKey))
+                                textureCollisionsFoldoutStates[textureCollisionsKey] = true;
+                            
+                            height += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
+                            if (collisionsFoldoutStates[collisionsKey])
+                                height += listPair.CollisionsList.GetHeight() + EditorGUIUtility.standardVerticalSpacing;
+                            
+                            height += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
+                            if (textureCollisionsFoldoutStates[textureCollisionsKey])
+                                height += listPair.TextureCollisionsList.GetHeight();
                         }
                         
                         return height;
@@ -117,7 +155,7 @@ namespace GrygTools.Audio
         {
             var collisionsList = new ReorderableList(serializedObject, collisionsProperty, true, true, true, true)
             {
-                drawHeaderCallback = rect => EditorGUI.LabelField(rect, "Audio Collision SFX"),
+                drawHeaderCallback = rect => { },
                 drawElementCallback = (rect, index, isActive, isFocused) =>
                 {
                     var element = collisionsProperty.GetArrayElementAtIndex(index);
@@ -162,7 +200,7 @@ namespace GrygTools.Audio
 
             var textureCollisionsList = new ReorderableList(serializedObject, textureCollisionsProperty, true, true, true, true)
             {
-                drawHeaderCallback = rect => EditorGUI.LabelField(rect, "Texture Collision SFX"),
+                drawHeaderCallback = rect => { },
                 drawElementCallback = (rect, index, isActive, isFocused) =>
                 {
                     var element = textureCollisionsProperty.GetArrayElementAtIndex(index);
