@@ -69,6 +69,10 @@ namespace GrygTools.Audio
 		public LayerMask WaterLayer;
 		public static LayerMask WaterLayerMask;
 		
+		[SerializeField, AudioCollisionTag]
+		private AudioCollisionTag m_WaterCollisionTag;
+		public static AudioCollisionTag WaterCollisionTag;
+		
 		[SerializeField]
 		public AudioTagCollisionConfig DefaultAudioTagCollisionConfig;
 		
@@ -251,6 +255,7 @@ namespace GrygTools.Audio
 		public void OnValidate()
 		{
 			WaterLayerMask = WaterLayer;
+			WaterCollisionTag = m_WaterCollisionTag;
 			if (Application.isPlaying && AudioController.Instance != null)
 			{
 				AudioController.Instance.SetMasterVolume(GetMasterVolume());

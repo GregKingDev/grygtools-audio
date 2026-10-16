@@ -1,5 +1,4 @@
-﻿using GrygTools.Audio;
-using UnityEngine;
+﻿using UnityEngine;
 namespace GrygTools.Audio
 {
 	[CreateAssetMenu(fileName = "NewSpatialAudioConfig", menuName = "GrygTools/Spatial Audio Settings")]

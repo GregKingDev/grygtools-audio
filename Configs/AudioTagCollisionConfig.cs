@@ -5,7 +5,7 @@ using UnityEngine;
 namespace GrygTools.Audio
 {
 	[Serializable]
-	public class ImpulseRangeCollisionSfx
+	internal class ImpulseRangeCollisionSfx
 	{
 		[SerializeField,MinAndMaxRangeVec2(0f, 10000)]
 		internal Vector2 m_ImpulseRange = new Vector2(0, 10000);
@@ -39,7 +39,7 @@ namespace GrygTools.Audio
 			m_CollisionSfxDictPerRange.Clear();
 			DuplicatesPerRange.Clear();
 			HashSet<(AudioCollisionTag, AudioCollisionTag)> uniquePairs = new HashSet<(AudioCollisionTag, AudioCollisionTag)>();
-			int index = 0;
+			
 			foreach (ImpulseRangeCollisionSfx collisionSfxRange in m_ImpulseRangeCollisionSfx)
 			{
 				uniquePairs.Clear();
@@ -76,11 +76,10 @@ namespace GrygTools.Audio
 						Debug.LogWarning($"Duplicate collision pair found: {collisionSfx.AudioCollisionTag1} - {collisionSfx.AudioCollisionTag2}. Only the first occurrence will be used.", this);
 					}
 				}
-				index++;
 			}
 		}
 		
-		public bool TryGetSfxKeyForCollision(float impulse, AudioCollisionTag tag1, AudioCollisionTag tag2, out SfxConfig sfxConfig)
+		internal bool TryGetSfxKeyForCollision(float impulse, AudioCollisionTag tag1, AudioCollisionTag tag2, out SfxConfig sfxConfig)
 		{
 			sfxConfig = null;
 			if(TryGetCollisionSfxDictForImpulse(impulse, out var collisionSfxDict))
@@ -93,7 +92,7 @@ namespace GrygTools.Audio
 			return false;
 		}
 		
-		public bool TryGetCollisionSfxDictForImpulse(float impulse, out Dictionary<(AudioCollisionTag, AudioCollisionTag), SfxConfig> collisionSfxDict)
+		internal bool TryGetCollisionSfxDictForImpulse(float impulse, out Dictionary<(AudioCollisionTag, AudioCollisionTag), SfxConfig> collisionSfxDict)
 		{
 			for (int i = 0; i < m_ImpulseRangeCollisionSfx.Length; i++)
 			{
@@ -110,7 +109,6 @@ namespace GrygTools.Audio
 		
 		private void ValidateRanges()
 		{
-			// Array.Sort(m_ImpulseRangeCollisionSfx, (a, b) => a.m_ImpulseRange.x.CompareTo(b.m_ImpulseRange.x));
 			for(int i = 0; i < m_ImpulseRangeCollisionSfx.Length - 1; i++)
 			{
 				if (i > 0)
@@ -121,15 +119,14 @@ namespace GrygTools.Audio
 						   && m_ImpulseRangeCollisionSfx[i].m_ImpulseRange.x < m_ImpulseRangeCollisionSfx[j].m_ImpulseRange.y)
 						{
 							Debug.LogWarning(
-								$"ImpactRange at index {i} has an impulse range that overlaps with another range. Please ensure that each SFX has a unique impulse range.");
+								$"CollisionRange at index {i} has an impulse range that overlaps with another range. Please ensure that each SFX has a unique impulse range.");
 							continue;
 						}
 						if (m_ImpulseRangeCollisionSfx[i].m_ImpulseRange.y > m_ImpulseRangeCollisionSfx[j].m_ImpulseRange.x
 						    && m_ImpulseRangeCollisionSfx[i].m_ImpulseRange.y < m_ImpulseRangeCollisionSfx[j].m_ImpulseRange.y)
 						{
 							Debug.LogWarning(
-								$"ImpactRange at index {i} has an impulse range that overlaps with another range. Please ensure that each SFX has a unique impulse range.");
-							continue;
+								$"CollisionRange at index {i} has an impulse range that overlaps with another range. Please ensure that each SFX has a unique impulse range.");
 						}
 					}
 				}
@@ -149,7 +146,7 @@ namespace GrygTools.Audio
 						m_ImpulseRangeCollisionSfx[i].m_ImpulseRange.y = m_ImpulseRangeCollisionSfx[i - 1].m_ImpulseRange.y + 1;
 					}
 					m_ImpulseRangeCollisionSfx[i].m_ImpulseRange.x = m_ImpulseRangeCollisionSfx[i - 1].m_ImpulseRange.y;
-					Debug.LogWarning($"ImpactRange at index {i} has an impulse range that overlaps with the previous SFX. Adjusting");
+					Debug.LogWarning($"CollisionRange at index {i} has an impulse range that overlaps with the previous SFX. Adjusting");
 					changes = true;
 				}
 			}

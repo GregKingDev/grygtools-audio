@@ -6,7 +6,6 @@ namespace GrygTools.Audio
 	[Serializable]
 	public struct AudioCollisionTag : IEquatable<AudioCollisionTag>
 	{
-		// 1. Unity needs to see this field to serialize it
 		[SerializeField]
 		private string _value;
 

@@ -108,9 +108,19 @@ namespace GrygTools.Audio
                 drawElementCallback = (rect, index, isActive, isFocused) =>
                 {
                     var element = collisionsProperty.GetArrayElementAtIndex(index);
-                    var tag1 = element.FindPropertyRelative("AudioCollisionTag1").FindPropertyRelative("_value").stringValue;
-                    var tag2 = element.FindPropertyRelative("AudioCollisionTag2").FindPropertyRelative("_value").stringValue;
-                    var sfxKey = element.FindPropertyRelative("SfxConfig").FindPropertyRelative("m_SfxName").stringValue;
+                    string tag1, tag2, sfxKey = null;
+                    if (element == null)
+                    {
+                        tag1 = string.Empty;
+                        tag2 = string.Empty;
+                        sfxKey = string.Empty;
+                    }
+                    else
+                    {
+                        tag1 = element.FindPropertyRelative("AudioCollisionTag1")?.FindPropertyRelative("_value").stringValue;
+                        tag2 = element.FindPropertyRelative("AudioCollisionTag2")?.FindPropertyRelative("_value").stringValue;
+                        sfxKey = element.FindPropertyRelative("SfxConfig")?.FindPropertyRelative("m_SfxName").stringValue;                        
+                    }
                     
                     // duplicate check needs to be fixed up. it will need to be remade into a dictionary to be able to check for duplicates properly.
                     // The dictionary will need to be keyed off the ImpulseRangeCollisionSfx entries then they'll need to be found here and used to find the right dupe list
