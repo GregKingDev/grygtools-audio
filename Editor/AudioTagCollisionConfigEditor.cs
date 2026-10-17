@@ -1,4 +1,4 @@
-﻿using GrygTools.Utils.Extensions;
+﻿using System;
 using UnityEditor;
 using UnityEditorInternal;
 using UnityEngine;
@@ -41,7 +41,7 @@ namespace GrygTools.Audio
                         var element = impulseRangeProperty.GetArrayElementAtIndex(index);
                         var rangeProperty = element.FindPropertyRelative("m_ImpulseRange");
                         var collisionsProperty = element.FindPropertyRelative("m_CollisionSfx");
-                        var textureCollisionsProperty = element.FindPropertyRelative("m_TextureCollisionSfx");
+                        var textureCollisionsProperty = element.FindPropertyRelative("m_TextureAndMaterialCollisionSfx");
                         string key = $"{impulseRangeProperty.propertyPath}[{index}]";
 
                         if (!listsPerRange.ContainsKey(key))
@@ -52,8 +52,10 @@ namespace GrygTools.Audio
                         float y = rect.y;
                         
                         // Draw foldout and range property
+                        bool prevRangeState = rangeFoldoutStates[index];
                         rangeFoldoutStates[index] = EditorGUI.Foldout(new Rect(rect.x, y, 15, EditorGUIUtility.singleLineHeight), rangeFoldoutStates[index], "");
                         EditorGUI.PropertyField(new Rect(rect.x, y, rect.width - 15, EditorGUIUtility.singleLineHeight), rangeProperty);
+                        
                         y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
                         
                         // Draw nested lists if expanded
@@ -68,8 +70,9 @@ namespace GrygTools.Audio
                             if (!textureCollisionsFoldoutStates.ContainsKey(textureCollisionsKey))
                                 textureCollisionsFoldoutStates[textureCollisionsKey] = true;
                             
-                            // Draw Audio Collision SFX foldout and list
-                            collisionsFoldoutStates[collisionsKey] = EditorGUI.Foldout(new Rect(rect.x + indent, y, rect.width - indent, EditorGUIUtility.singleLineHeight), collisionsFoldoutStates[collisionsKey], "Audio Collision SFX");
+                            // Draw Audio Collision SFX foldout
+                            bool prevCollisionsState = collisionsFoldoutStates[collisionsKey];
+                            collisionsFoldoutStates[collisionsKey] = EditorGUI.Foldout(new Rect(rect.x + indent, y, rect.width - indent, EditorGUIUtility.singleLineHeight), collisionsFoldoutStates[collisionsKey], "Tag to Tag Collision SFX");
                             y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
                             
                             if (collisionsFoldoutStates[collisionsKey])
@@ -78,13 +81,23 @@ namespace GrygTools.Audio
                                 y += listPair.CollisionsList.GetHeight() + EditorGUIUtility.standardVerticalSpacing;
                             }
                             
-                            // Draw Texture Collision SFX foldout and list
-                            textureCollisionsFoldoutStates[textureCollisionsKey] = EditorGUI.Foldout(new Rect(rect.x + indent, y, rect.width - indent, EditorGUIUtility.singleLineHeight), textureCollisionsFoldoutStates[textureCollisionsKey], "Texture Collision SFX");
+                            // Draw Texture Collision SFX foldout
+                            bool prevTextureState = textureCollisionsFoldoutStates[textureCollisionsKey];
+                            textureCollisionsFoldoutStates[textureCollisionsKey] = EditorGUI.Foldout(new Rect(rect.x + indent, y, rect.width - indent, EditorGUIUtility.singleLineHeight), textureCollisionsFoldoutStates[textureCollisionsKey], "Texture&PhysMat Collision SFX");
                             y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
                             
                             if (textureCollisionsFoldoutStates[textureCollisionsKey])
                             {
-                                listPair.TextureCollisionsList.DoList(new Rect(rect.x + indent, y, rect.width - indent, listPair.TextureCollisionsList.GetHeight()));
+                                try
+                                {
+                                    listPair.TextureCollisionsList.DoList(new Rect(rect.x + indent, y, rect.width - indent, listPair.TextureCollisionsList.GetHeight()));
+                                }
+                                catch (Exception e)
+                                {
+                                    Console.WriteLine(e);
+                                    throw;
+                                }
+                                
                             }
                         }
                         EditorGUI.indentLevel--;
@@ -97,7 +110,7 @@ namespace GrygTools.Audio
                         var element = impulseRangeProperty.GetArrayElementAtIndex(index);
                         var rangeProperty = element.FindPropertyRelative("m_ImpulseRange");
                         var collisionsProperty = element.FindPropertyRelative("m_CollisionSfx");
-                        var textureCollisionsProperty = element.FindPropertyRelative("m_TextureCollisionSfx");
+                        var textureCollisionsProperty = element.FindPropertyRelative("m_TextureAndMaterialCollisionSfx");
                         string key = $"{impulseRangeProperty.propertyPath}[{index}]";
                         
                         if (!listsPerRange.ContainsKey(key))
@@ -174,17 +187,19 @@ namespace GrygTools.Audio
                     }
                     
                     bool duplicate = false;
-                    if( config.DuplicatesPerRange.Count > impulseRangeIndex)
+                    if( config.TagToTagDuplicatesPerRange.Count > impulseRangeIndex)
                     {
-                        var duplicatesList = config.DuplicatesPerRange[impulseRangeIndex];
+                        var duplicatesList = config.TagToTagDuplicatesPerRange[impulseRangeIndex];
                         duplicate = duplicatesList.Contains((new AudioCollisionTag(tag1), new AudioCollisionTag(tag2)))
                             || duplicatesList.Contains((new AudioCollisionTag(tag2), new AudioCollisionTag(tag1)));
                     }
                     
                     var oldColor = GUI.color;
                     if (duplicate)
+                    {
                         GUI.color = Color.lightPink;
-                    
+                    }
+
                     string label = $"{tag1} - {tag2} -> {sfxKey}";
                     EditorGUI.indentLevel++;
                     EditorGUI.PropertyField(rect, element, new GUIContent(label), true);

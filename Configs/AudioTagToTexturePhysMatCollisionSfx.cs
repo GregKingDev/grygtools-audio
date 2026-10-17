@@ -4,20 +4,22 @@ using UnityEngine.Serialization;
 namespace GrygTools.Audio
 {
 	[Serializable]
-	public class AudioTagToTextureCollisionSfx
+	public class AudioTagToTexturePhysMatCollisionSfx
 	{
+		[FormerlySerializedAs("AudioCollisionTag1")]
 		[SerializeField]
 		[AudioCollisionTag]
-		public AudioCollisionTag AudioCollisionTag1;
+		public AudioCollisionTag AudioCollisionTag;
 		
 		[SerializeField]
+		public TexturesAndMaterialsToSfx[] TexturesAndMaterialsToSfx;
+	}
+	
+	[Serializable]
+	public class TexturesAndMaterialsToSfx
+	{
 		public Texture[] Textures;
-		
-		[SerializeField]
 		public PhysicsMaterial[] PhysicsMaterials;
-		
-		[FormerlySerializedAs("SfxKey")]
-		[SerializeField]
 		public SfxConfig SfxConfig;
 	}
 }
