@@ -219,9 +219,70 @@ namespace GrygTools.Audio
                 drawElementCallback = (rect, index, isActive, isFocused) =>
                 {
                     var element = textureCollisionsProperty.GetArrayElementAtIndex(index);
+                    
+                    bool isDuplicate = false;
+                    if (config.TagDuplicatesPerRange.Count > impulseRangeIndex && 
+                        element.FindPropertyRelative("AudioCollisionTag") != null)
+                    {
+                        var tag = element.FindPropertyRelative("AudioCollisionTag")?.FindPropertyRelative("_value").stringValue;
+                        if (config.TagDuplicatesPerRange[impulseRangeIndex].Contains(new AudioCollisionTag(tag)))
+                        {
+                            isDuplicate = true;
+                        }
+                    }
+                    
+                    if (!isDuplicate && config.TagToTextureDuplicatesPerRange.Count > impulseRangeIndex)
+                    {
+                        var tag = element.FindPropertyRelative("AudioCollisionTag")?.FindPropertyRelative("_value").stringValue;
+                        var texturesAndMaterialsArray = element.FindPropertyRelative("TexturesAndMaterialsToSfx");
+                        
+                        for (int i = 0; i < texturesAndMaterialsArray.arraySize; i++)
+                        {
+                            var texturesArray = texturesAndMaterialsArray.GetArrayElementAtIndex(i).FindPropertyRelative("Textures");
+                            for (int j = 0; j < texturesArray.arraySize; j++)
+                            {
+                                var texture = texturesArray.GetArrayElementAtIndex(j).objectReferenceValue as Texture;
+                                if (texture && config.TagToTextureDuplicatesPerRange[impulseRangeIndex].Contains((new AudioCollisionTag(tag), texture)))
+                                {
+                                    isDuplicate = true;
+                                    break;
+                                }
+                            }
+                            if (isDuplicate) break;
+                        }
+                    }
+                    
+                    if (!isDuplicate && config.TagToPhysicsMaterialDuplicatesPerRange.Count > impulseRangeIndex)
+                    {
+                        var tag = element.FindPropertyRelative("AudioCollisionTag")?.FindPropertyRelative("_value").stringValue;
+                        var texturesAndMaterialsArray = element.FindPropertyRelative("TexturesAndMaterialsToSfx");
+                        
+                        for (int i = 0; i < texturesAndMaterialsArray.arraySize; i++)
+                        {
+                            var materialsArray = texturesAndMaterialsArray.GetArrayElementAtIndex(i).FindPropertyRelative("PhysicsMaterials");
+                            for (int j = 0; j < materialsArray.arraySize; j++)
+                            {
+                                var material = materialsArray.GetArrayElementAtIndex(j).objectReferenceValue as PhysicsMaterial;
+                                if (material && config.TagToPhysicsMaterialDuplicatesPerRange[impulseRangeIndex].Contains((new AudioCollisionTag(tag), material)))
+                                {
+                                    isDuplicate = true;
+                                    break;
+                                }
+                            }
+                            if (isDuplicate) break;
+                        }
+                    }
+                    
+                    var oldColor = GUI.color;
+                    if (isDuplicate)
+                    {
+                        GUI.color = Color.lightPink;
+                    }
+                    
                     EditorGUI.indentLevel++;
                     EditorGUI.PropertyField(rect, element, true);
                     EditorGUI.indentLevel--;
+                    GUI.color = oldColor;
                 },
                 elementHeightCallback = index =>
                 {
