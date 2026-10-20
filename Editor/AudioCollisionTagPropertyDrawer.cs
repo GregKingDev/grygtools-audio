@@ -6,7 +6,7 @@ using UnityEditor;
 using UnityEngine;
 namespace GrygTools.Audio
 {
-	[CustomPropertyDrawer(typeof(AudioCollisionTagAttribute))]
+	[CustomPropertyDrawer(typeof(AudioCollisionTag))]
 	public class AudioCollisionTagDrawer : PropertyDrawer
 	{
 		private int idHash => "AudioCollisionTag".GetHashCode();

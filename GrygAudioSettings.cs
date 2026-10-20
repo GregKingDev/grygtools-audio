@@ -77,6 +77,7 @@ namespace GrygTools.Audio
 		public AudioTagCollisionConfig DefaultAudioTagCollisionConfig;
 		
 		[SerializeField]
+		[DefaultPropertyDrawerAttribute]
 		public List<AudioCollisionTag> CollisionTags;
 		internal string[] CollisionTagsStrings;
 
