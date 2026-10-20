@@ -173,10 +173,10 @@ namespace GrygTools.Audio
 			}
 		}
 		
-		internal bool TryGetSfxKeyForCollision(float impulse, AudioCollisionTag tag1, AudioCollisionTag tag2, out SfxConfig sfxConfig)
+		internal bool TryGetSfxKeyForTagTagCollision(float impulse, AudioCollisionTag tag1, AudioCollisionTag tag2, out SfxConfig sfxConfig)
 		{
 			sfxConfig = null;
-			if(TryGetCollisionSfxDictForImpulse(impulse, out var collisionSfxDict))
+			if(TryGetTagTagCollisionSfxDictForImpulse(impulse, out var collisionSfxDict))
 			{
 				if (collisionSfxDict.TryGetValue((tag1, tag2), out sfxConfig) || collisionSfxDict.TryGetValue((tag2, tag1), out sfxConfig))
 				{
@@ -186,7 +186,33 @@ namespace GrygTools.Audio
 			return false;
 		}
 		
-		internal bool TryGetCollisionSfxDictForImpulse(float impulse, out Dictionary<(AudioCollisionTag, AudioCollisionTag), SfxConfig> collisionSfxDict)
+		internal bool TryGetSfxKeyForTagTextureCollision(float impulse, AudioCollisionTag tag, Texture texture, out SfxConfig sfxConfig)
+		{
+			sfxConfig = null;
+			if(TryGetTagTextureCollisionSfxDictForImpulse(impulse, out var collisionSfxDict))
+			{
+				if (collisionSfxDict.TryGetValue((tag, texture), out sfxConfig))
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+		
+		internal bool TryGetSfxKeyForTagPhysMatCollision(float impulse, AudioCollisionTag tag, PhysicsMaterial physMat, out SfxConfig sfxConfig)
+		{
+			sfxConfig = null;
+			if(TryGetTagPhysMatCollisionSfxDictForImpulse(impulse, out var collisionSfxDict))
+			{
+				if (collisionSfxDict.TryGetValue((tag, physMat), out sfxConfig))
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+		
+		internal bool TryGetTagTagCollisionSfxDictForImpulse(float impulse, out Dictionary<(AudioCollisionTag, AudioCollisionTag), SfxConfig> collisionSfxDict)
 		{
 			for (int i = 0; i < m_ImpulseRangeCollisionSfx.Length; i++)
 			{
@@ -194,6 +220,36 @@ namespace GrygTools.Audio
 				if (impulse >= range.m_ImpulseRange.x && impulse <= range.m_ImpulseRange.y)
 				{
 					collisionSfxDict = m_PerRangeTagTagLookup[i];
+					return true;
+				}
+			}
+			collisionSfxDict = null;
+			return false;
+		}
+		
+		internal bool TryGetTagTextureCollisionSfxDictForImpulse(float impulse, out Dictionary<(AudioCollisionTag, Texture), SfxConfig> collisionSfxDict)
+		{
+			for (int i = 0; i < m_ImpulseRangeCollisionSfx.Length; i++)
+			{
+				var range = m_ImpulseRangeCollisionSfx[i];
+				if (impulse >= range.m_ImpulseRange.x && impulse <= range.m_ImpulseRange.y)
+				{
+					collisionSfxDict = m_PerRangeTagTextureLookup[i];
+					return true;
+				}
+			}
+			collisionSfxDict = null;
+			return false;
+		}
+		
+		internal bool TryGetTagPhysMatCollisionSfxDictForImpulse(float impulse, out Dictionary<(AudioCollisionTag, PhysicsMaterial), SfxConfig> collisionSfxDict)
+		{
+			for (int i = 0; i < m_ImpulseRangeCollisionSfx.Length; i++)
+			{
+				var range = m_ImpulseRangeCollisionSfx[i];
+				if (impulse >= range.m_ImpulseRange.x && impulse <= range.m_ImpulseRange.y)
+				{
+					collisionSfxDict = m_PerRangeTagPhysMatLookup[i];
 					return true;
 				}
 			}

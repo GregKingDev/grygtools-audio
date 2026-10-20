@@ -1,4 +1,5 @@
 ﻿using GrygTools.Utils.Attributes;
+using GrygTools.Utils.Extensions;
 using System.Collections.Generic;
 using System.Diagnostics;
 using UnityEngine;
@@ -6,6 +7,7 @@ using Debug = UnityEngine.Debug;
 
 namespace GrygTools.Audio.SfxHandlers
 {
+	[DisallowMultipleComponent]
 	public class FootstepSfxHandler : MonoBehaviour
 	{
 		[Header("Function must be PlaySfx and string parameter of event must match The set EventName")]
@@ -74,7 +76,7 @@ namespace GrygTools.Audio.SfxHandlers
 					SfxConfig sfxConfig;
 					if (m_RayHits[0].collider.TryGetComponent(out Terrain terrain))
 					{
-						var texture = InternalUtils.GetDominantTerrainTexture(m_RayHits[0].point, terrain);
+						var texture = terrain.GetDominantTerrainTexture(m_RayHits[0].point);
 						Log($"Dominant Terrain Texture: {(texture != null ? texture.name : "null")}", texture);
 
 						if (m_TextureLookup.TryGetValue(texture, out sfxConfig) && sfxConfig.IsSet())

@@ -32,7 +32,7 @@ namespace GrygTools.Audio
                 impulseRangeList = new ReorderableList(serializedObject, impulseRangeProperty, true, true, true, true)
                 {
                     drawHeaderCallback = rect => EditorGUI.LabelField(rect, "Impulse Range Collision SFX"),
-                    drawElementCallback = (rect, index, isActive, isFocused) =>
+                    drawElementCallback = (rect, index, _, _) =>
                     {
                         EditorGUI.indentLevel++;
                         if (!rangeFoldoutStates.ContainsKey(index))
@@ -52,7 +52,6 @@ namespace GrygTools.Audio
                         float y = rect.y;
                         
                         // Draw foldout and range property
-                        bool prevRangeState = rangeFoldoutStates[index];
                         rangeFoldoutStates[index] = EditorGUI.Foldout(new Rect(rect.x, y, 15, EditorGUIUtility.singleLineHeight), rangeFoldoutStates[index], "");
                         EditorGUI.PropertyField(new Rect(rect.x, y, rect.width - 15, EditorGUIUtility.singleLineHeight), rangeProperty);
                         
@@ -71,7 +70,6 @@ namespace GrygTools.Audio
                                 textureCollisionsFoldoutStates[textureCollisionsKey] = true;
                             
                             // Draw Audio Collision SFX foldout
-                            bool prevCollisionsState = collisionsFoldoutStates[collisionsKey];
                             collisionsFoldoutStates[collisionsKey] = EditorGUI.Foldout(new Rect(rect.x + indent, y, rect.width - indent, EditorGUIUtility.singleLineHeight), collisionsFoldoutStates[collisionsKey], "Tag to Tag Collision SFX");
                             y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
                             
@@ -82,7 +80,6 @@ namespace GrygTools.Audio
                             }
                             
                             // Draw Texture Collision SFX foldout
-                            bool prevTextureState = textureCollisionsFoldoutStates[textureCollisionsKey];
                             textureCollisionsFoldoutStates[textureCollisionsKey] = EditorGUI.Foldout(new Rect(rect.x + indent, y, rect.width - indent, EditorGUIUtility.singleLineHeight), textureCollisionsFoldoutStates[textureCollisionsKey], "Texture&PhysMat Collision SFX");
                             y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
                             
@@ -169,7 +166,7 @@ namespace GrygTools.Audio
             var collisionsList = new ReorderableList(serializedObject, collisionsProperty, true, true, true, true)
             {
                 drawHeaderCallback = rect => { },
-                drawElementCallback = (rect, index, isActive, isFocused) =>
+                drawElementCallback = (rect, index, _, _) =>
                 {
                     var element = collisionsProperty.GetArrayElementAtIndex(index);
                     string tag1, tag2, sfxKey = null;
@@ -216,7 +213,7 @@ namespace GrygTools.Audio
             var textureCollisionsList = new ReorderableList(serializedObject, textureCollisionsProperty, true, true, true, true)
             {
                 drawHeaderCallback = rect => { },
-                drawElementCallback = (rect, index, isActive, isFocused) =>
+                drawElementCallback = (rect, index, _, _) =>
                 {
                     var element = textureCollisionsProperty.GetArrayElementAtIndex(index);
                     
@@ -279,8 +276,10 @@ namespace GrygTools.Audio
                         GUI.color = Color.lightPink;
                     }
                     
+                    var tagValue = element.FindPropertyRelative("AudioCollisionTag")?.FindPropertyRelative("_value").stringValue ?? "Empty";
+                    string label = tagValue;
                     EditorGUI.indentLevel++;
-                    EditorGUI.PropertyField(rect, element, true);
+                    EditorGUI.PropertyField(rect, element, new GUIContent(label), true);
                     EditorGUI.indentLevel--;
                     GUI.color = oldColor;
                 },

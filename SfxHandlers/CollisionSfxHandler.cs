@@ -1,4 +1,5 @@
 ﻿using GrygTools.Utils.Attributes;
+using GrygTools.Utils.Extensions;
 using System.Diagnostics;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
@@ -6,35 +7,6 @@ using Object = UnityEngine.Object;
 
 namespace GrygTools.Audio.SfxHandlers
 {
-	// [Serializable]
-	// public class CollisionRange
-	// {
-	// 	[MinAndMaxRangeVec2(0f, 10000)]
-	// 	private Vector2 m_ImpulseRange = new Vector2(0, 10000);
-	// 	public Vector2 ImpulseRange { get => m_ImpulseRange;  internal set => m_ImpulseRange = value; }
-	// 	public float ImpulseLowerBoundSqr => m_ImpulseRange.x * m_ImpulseRange.x;
-	// 	public float ImpulseUpperBoundSqr => m_ImpulseRange.y * m_ImpulseRange.y;
-	// 	
-	// 	[Header("Sfx checks are done in order of PhysicMaterial, Texture, Tag. If no match is found the default Sfx will be played.")]
-	// 	[SerializeField]
-	// 	internal PhysicsMaterialsToSfx[] m_PhysicMaterialSfx;
-	// 	public readonly Dictionary<PhysicsMaterial, SfxConfig> PhysicsMaterialSfxLookup = new Dictionary<PhysicsMaterial, SfxConfig>();
-	//
-	// 	[SerializeField]
-	// 	internal TexturesToSfx[] m_TextureSfx;
-	// 	public readonly Dictionary<Texture, SfxConfig> TextureSfxLookup = new Dictionary<Texture, SfxConfig>();
-	//
-	// 	[SerializeField]
-	// 	internal TagsToSfx[] m_TagSfx;
-	// 	public readonly Dictionary<string, SfxConfig> TagSfxLookup = new Dictionary<string, SfxConfig>();
-	// 	
-	// 	[SerializeField]
-	// 	public SfxConfig m_WaterCollisionSfx;
-	// 	
-	// 	[SerializeField]
-	// 	public SfxConfig m_DefaultCollisionSfx;
-	// }
-	
 	public enum UnderWaterSfxCollisionMode
 	{
 		IgnoreCollisionSfx,
@@ -42,25 +14,28 @@ namespace GrygTools.Audio.SfxHandlers
 		UseTerrestrialSfx
 	}
 	
-	[RequireComponent(typeof(Collider))]
+	[RequireComponent(typeof(Collider)), DisallowMultipleComponent]
 	public class CollisionSfxHandler : MonoBehaviour
 	{
-		// [SerializeField, AudioCollisionTag]
-		// private AudioCollisionTag m_AudioCollisionTag;
-		//
-		// [SerializeField]
-		// private CollisionRange[] m_CollisionRanges;
-		
 		[SerializeField]
+		[AudioCollisionTag]
 		private AudioCollisionTag m_AudioCollisionTag;
+		public AudioCollisionTag AudioCollisionTag 
+		{
+			get
+			{
+				return m_AudioCollisionTag;
+			}
+			internal set
+			{
+				m_AudioCollisionTag = value;
+			} 
+		}
 
 		[SerializeField]
 		private UnderWaterSfxCollisionMode m_UnderWaterSfxCollisionMode;
 		
 		private bool m_InWater;
-		
-		// [SerializeField, ConditionalSerializedField(nameof(m_UnderWaterSfxCollisionMode), UnderWaterSfxCollisionMode.PlayUnderWaterCollisionSfx)]
-		// private CollisionRange[] m_UnderWaterCollisionRanges;
 		
 		[SerializeField, Tooltip("Collider used to determine speed in entering water"), ReadOnly]
 		private Collider m_Collider;
@@ -69,12 +44,6 @@ namespace GrygTools.Audio.SfxHandlers
 		{
 			AutoSetCollider();
 		}
-
-		private bool MeetsRange(float value, Vector2 range)
-		{
-			return value >= range.x && value <= range.y;
-		}
-		
 
 		private void OnTriggerEnter(Collider other)
 		{
@@ -89,7 +58,7 @@ namespace GrygTools.Audio.SfxHandlers
 				
 				Vector3 impulse = m_Collider.attachedRigidbody.mass * m_Collider.attachedRigidbody.linearVelocity;
 				Log($"Water: Entering water with impulse sqr: {impulse.sqrMagnitude}.", gameObject);
-				if(AudioController.Instance.AudioSettings.DefaultAudioTagCollisionConfig.TryGetSfxKeyForCollision(impulse.sqrMagnitude, m_AudioCollisionTag, GrygAudioSettings.WaterCollisionTag, out SfxConfig sfxConfig))
+				if(AudioController.Instance.AudioSettings.DefaultAudioTagCollisionConfig.TryGetSfxKeyForTagTagCollision(impulse.sqrMagnitude, m_AudioCollisionTag, GrygAudioSettings.WaterCollisionTag, out SfxConfig sfxConfig))
 				{
 					AudioController.Instance.PlaySfx(sfxConfig, gameObject);
 				}
@@ -113,7 +82,6 @@ namespace GrygTools.Audio.SfxHandlers
 				return;
 			}
 
-			//TODO this needs to be expanded to handle PhysicMaterial and Texture based SFX as well, not just AudioCollisionTag. Possibly unity tag as well.
 			if (collision.gameObject.TryGetComponent(out CollisionSfxHandler otherCollisionSfxHandler))
 			{
 				// Only the higher instance ID will play the SFX to avoid double playing
@@ -121,13 +89,39 @@ namespace GrygTools.Audio.SfxHandlers
 				{
 					return;
 				}
+				Log($"Tag to Tag collision {m_AudioCollisionTag} - {otherCollisionSfxHandler.m_AudioCollisionTag}", gameObject);
 				PlaySfxForTagType(otherCollisionSfxHandler.m_AudioCollisionTag, collision.impulse.sqrMagnitude);
+				return;
+			}
+			
+			if(collision.gameObject.TryGetComponent(out Terrain terrain))
+			{
+				var texture = terrain.GetDominantTerrainTexture(collision.contacts[0].point);
+				Log($"Terrain Texture collision: {m_AudioCollisionTag} - {(texture != null ? texture.name : "null")}", texture);
+				if (AudioController.Instance.AudioSettings.DefaultAudioTagCollisionConfig
+				    .TryGetSfxKeyForTagTextureCollision(collision.impulse.sqrMagnitude, m_AudioCollisionTag,texture, out sfxConfig))
+				{
+					AudioController.Instance.PlaySfx(sfxConfig, gameObject);
+					return;
+				}
+			}
+
+			var colliders = collision.gameObject.GetComponents<Collider>();
+			foreach (Collider col in colliders)
+			{
+				if (AudioController.Instance.AudioSettings.DefaultAudioTagCollisionConfig.TryGetSfxKeyForTagPhysMatCollision(
+					    collision.impulse.sqrMagnitude, m_AudioCollisionTag, col.sharedMaterial, out sfxConfig))
+				{
+					Log($"Physics Material collision: {m_AudioCollisionTag} - {(col.sharedMaterial != null ? col.sharedMaterial.name : "null")}", col.sharedMaterial);
+					AudioController.Instance.PlaySfx(sfxConfig, gameObject);
+					return;
+				}
 			}
 		}
 
-		public void PlaySfxForTagType(AudioCollisionTag otherAudioTag, float impulseSquared)
+		private void PlaySfxForTagType(AudioCollisionTag otherAudioTag, float impulseSquared)
 		{
-			if (AudioController.Instance.AudioSettings.DefaultAudioTagCollisionConfig.TryGetSfxKeyForCollision(impulseSquared, m_AudioCollisionTag,
+			if (AudioController.Instance.AudioSettings.DefaultAudioTagCollisionConfig.TryGetSfxKeyForTagTagCollision(impulseSquared, m_AudioCollisionTag,
 				    otherAudioTag, out SfxConfig sfxConfig))
 			{
 				AudioController.Instance.PlaySfx(sfxConfig, gameObject);
