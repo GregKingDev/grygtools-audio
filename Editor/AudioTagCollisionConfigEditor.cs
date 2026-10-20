@@ -20,6 +20,8 @@ namespace GrygTools.Audio
         private Dictionary<int, bool> rangeFoldoutStates = new();
         private Dictionary<string, bool> collisionsFoldoutStates = new();
         private Dictionary<string, bool> textureCollisionsFoldoutStates = new();
+        private Dictionary<string, bool> texturesAndMaterialsFoldoutStates = new();
+        private Dictionary<string, Dictionary<int, ReorderableList>> nestedTexturesAndMaterialsLists = new();
         private AudioTagCollisionConfig config;
 
         private void OnEnable()
@@ -216,6 +218,14 @@ namespace GrygTools.Audio
                 drawElementCallback = (rect, index, _, _) =>
                 {
                     var element = textureCollisionsProperty.GetArrayElementAtIndex(index);
+                    var texturesAndMaterialsArrayProp = element.FindPropertyRelative("TexturesAndMaterialsToSfx");
+                    string elementKey = $"{key}_textureCollision[{index}]";
+                    
+                    if (!nestedTexturesAndMaterialsLists.ContainsKey(elementKey))
+                    {
+                        nestedTexturesAndMaterialsLists[elementKey] = new Dictionary<int, ReorderableList>();
+                        CreateNestedTexturesAndMaterialsList(elementKey, texturesAndMaterialsArrayProp);
+                    }
                     
                     bool isDuplicate = false;
                     if (config.TagDuplicatesPerRange.Count > impulseRangeIndex && 
@@ -231,11 +241,10 @@ namespace GrygTools.Audio
                     if (!isDuplicate && config.TagToTextureDuplicatesPerRange.Count > impulseRangeIndex)
                     {
                         var tag = element.FindPropertyRelative("AudioCollisionTag")?.FindPropertyRelative("_value").stringValue;
-                        var texturesAndMaterialsArray = element.FindPropertyRelative("TexturesAndMaterialsToSfx");
                         
-                        for (int i = 0; i < texturesAndMaterialsArray.arraySize; i++)
+                        for (int i = 0; i < texturesAndMaterialsArrayProp.arraySize; i++)
                         {
-                            var texturesArray = texturesAndMaterialsArray.GetArrayElementAtIndex(i).FindPropertyRelative("Textures");
+                            var texturesArray = texturesAndMaterialsArrayProp.GetArrayElementAtIndex(i).FindPropertyRelative("Textures");
                             for (int j = 0; j < texturesArray.arraySize; j++)
                             {
                                 var texture = texturesArray.GetArrayElementAtIndex(j).objectReferenceValue as Texture;
@@ -252,11 +261,10 @@ namespace GrygTools.Audio
                     if (!isDuplicate && config.TagToPhysicsMaterialDuplicatesPerRange.Count > impulseRangeIndex)
                     {
                         var tag = element.FindPropertyRelative("AudioCollisionTag")?.FindPropertyRelative("_value").stringValue;
-                        var texturesAndMaterialsArray = element.FindPropertyRelative("TexturesAndMaterialsToSfx");
                         
-                        for (int i = 0; i < texturesAndMaterialsArray.arraySize; i++)
+                        for (int i = 0; i < texturesAndMaterialsArrayProp.arraySize; i++)
                         {
-                            var materialsArray = texturesAndMaterialsArray.GetArrayElementAtIndex(i).FindPropertyRelative("PhysicsMaterials");
+                            var materialsArray = texturesAndMaterialsArrayProp.GetArrayElementAtIndex(i).FindPropertyRelative("PhysicsMaterials");
                             for (int j = 0; j < materialsArray.arraySize; j++)
                             {
                                 var material = materialsArray.GetArrayElementAtIndex(j).objectReferenceValue as PhysicsMaterial;
@@ -277,20 +285,76 @@ namespace GrygTools.Audio
                     }
                     
                     var tagValue = element.FindPropertyRelative("AudioCollisionTag")?.FindPropertyRelative("_value").stringValue ?? "Empty";
-                    string label = tagValue;
+                    
                     EditorGUI.indentLevel++;
-                    EditorGUI.PropertyField(rect, element, new GUIContent(label), true);
+                    float indentAmount = 5;
+                    
+                    if (!texturesAndMaterialsFoldoutStates.ContainsKey(elementKey))
+                        texturesAndMaterialsFoldoutStates[elementKey] = false;
+                    
+                    texturesAndMaterialsFoldoutStates[elementKey] = EditorGUI.Foldout(new Rect(rect.x + indentAmount, rect.y, rect.width - indentAmount, EditorGUIUtility.singleLineHeight), texturesAndMaterialsFoldoutStates[elementKey], tagValue);
+                    
+                    if (texturesAndMaterialsFoldoutStates[elementKey])
+                    {
+                        float y = rect.y + EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
+                        if (nestedTexturesAndMaterialsLists.TryGetValue(elementKey, out var nestedDict))
+                        {
+                            if (nestedDict.Count > 0)
+                            {
+                                var nestedList = nestedDict[0];
+                                nestedList.DoList(new Rect(rect.x + indentAmount, y, rect.width - indentAmount, nestedList.GetHeight()));
+                            }
+                        }
+                    }
+                    
                     EditorGUI.indentLevel--;
                     GUI.color = oldColor;
                 },
                 elementHeightCallback = index =>
                 {
                     var element = textureCollisionsProperty.GetArrayElementAtIndex(index);
-                    return EditorGUI.GetPropertyHeight(element) + EditorGUIUtility.standardVerticalSpacing;
+                    string elementKey = $"{key}_textureCollision[{index}]";
+                    float baseHeight = EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
+                    
+                    if (texturesAndMaterialsFoldoutStates.TryGetValue(elementKey, out var isExpanded) && isExpanded)
+                    {
+                        if (nestedTexturesAndMaterialsLists.TryGetValue(elementKey, out var nestedDict) && nestedDict.Count > 0)
+                        {
+                            baseHeight += nestedDict[0].GetHeight() + EditorGUIUtility.standardVerticalSpacing;
+                        }
+                    }
+                    
+                    return baseHeight;
                 }
             };
             
             listsPerRange[key] = new RangeListsPair { CollisionsList = collisionsList, TextureCollisionsList = textureCollisionsList };
+        }
+
+        private void CreateNestedTexturesAndMaterialsList(string elementKey, SerializedProperty texturesAndMaterialsArrayProp)
+        {
+            var nestedList = new ReorderableList(serializedObject, texturesAndMaterialsArrayProp, true, true, true, true)
+            {
+                drawHeaderCallback = rect => { },
+                drawElementCallback = (rect, index, _, _) =>
+                {
+                    var element = texturesAndMaterialsArrayProp.GetArrayElementAtIndex(index);
+                    var sfxConfigProp = element.FindPropertyRelative("SfxConfig");
+                    var sfxNameProp = sfxConfigProp?.FindPropertyRelative("m_SfxName");
+                    var sfxName = sfxNameProp?.stringValue ?? "Empty";
+                    
+                    EditorGUI.indentLevel++;
+                    EditorGUI.PropertyField(rect, element, new GUIContent(sfxName), true);
+                    EditorGUI.indentLevel--;
+                },
+                elementHeightCallback = index =>
+                {
+                    var element = texturesAndMaterialsArrayProp.GetArrayElementAtIndex(index);
+                    return EditorGUI.GetPropertyHeight(element) + EditorGUIUtility.standardVerticalSpacing;
+                }
+            };
+            
+            nestedTexturesAndMaterialsLists[elementKey][0] = nestedList;
         }
     }
 }
