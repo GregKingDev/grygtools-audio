@@ -7,7 +7,6 @@ using Debug = UnityEngine.Debug;
 
 namespace GrygTools.Audio.SfxHandlers
 {
-	[DisallowMultipleComponent]
 	public class FootstepSfxHandler : MonoBehaviour
 	{
 		[Header("Function must be PlaySfx and string parameter of event must match The set EventName")]
