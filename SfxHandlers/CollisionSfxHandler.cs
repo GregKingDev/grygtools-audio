@@ -18,7 +18,6 @@ namespace GrygTools.Audio.SfxHandlers
 	public class CollisionSfxHandler : MonoBehaviour
 	{
 		[SerializeField]
-		[AudioCollisionTag]
 		private AudioCollisionTag m_AudioCollisionTag;
 		public AudioCollisionTag AudioCollisionTag 
 		{
