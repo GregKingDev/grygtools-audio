@@ -80,6 +80,8 @@ namespace GrygTools.Audio
 			EditorGUILayout.EndHorizontal();
 			
 			EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("DefaultSpatialAudioConfig"));
+			EditorGUILayout.LabelField("Water Layer - Used for water detection for water collision sfx", EditorStyles.boldLabel);
+			EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("WaterLayer"));
 			
 			EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("SfxCategories"));
 			
@@ -94,6 +96,9 @@ namespace GrygTools.Audio
 			{
 				musicSettings.RunMusicValidation();
 			}
+			EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("DefaultAudioTagCollisionConfig"));
+			EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("m_WaterCollisionTag"));
+			EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("CollisionTags"));
 			
 			m_CustomSettings.ApplyModifiedPropertiesWithoutUndo();
 		}

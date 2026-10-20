@@ -64,6 +64,21 @@ namespace GrygTools.Audio
 		
 		[SerializeField]
 		public SpatialAudioConfig DefaultSpatialAudioConfig;
+		
+		[SerializeField]
+		public LayerMask WaterLayer;
+		public static LayerMask WaterLayerMask;
+		
+		[SerializeField, AudioCollisionTag]
+		private AudioCollisionTag m_WaterCollisionTag;
+		public static AudioCollisionTag WaterCollisionTag;
+		
+		[SerializeField]
+		public AudioTagCollisionConfig DefaultAudioTagCollisionConfig;
+		
+		[SerializeField]
+		public List<AudioCollisionTag> CollisionTags;
+		internal string[] CollisionTagsStrings;
 
 		public static GrygAudioSettings GetOrCreateSettings()
 		{
@@ -87,7 +102,7 @@ namespace GrygTools.Audio
 			{
 				Debug.LogError($"Unable to create GrygAudioSettings object, please create at Assets/Resources/AudioSettings.asset or open Project Settings/GrygAudio");
 			}
-			
+			WaterLayerMask = settings.WaterLayer;
 			return settings;
 		}
 
@@ -239,6 +254,8 @@ namespace GrygTools.Audio
 
 		public void OnValidate()
 		{
+			WaterLayerMask = WaterLayer;
+			WaterCollisionTag = m_WaterCollisionTag;
 			if (Application.isPlaying && AudioController.Instance != null)
 			{
 				AudioController.Instance.SetMasterVolume(GetMasterVolume());
@@ -247,6 +264,18 @@ namespace GrygTools.Audio
 					AudioController.Instance.SetSfxVolume(category.Id, PlayerPrefs.GetFloat(GetVolumeKey(category), 1f));
 				}
 			}
+
+			HashSet<string> tagHash = new HashSet<string>();
+			List<string> tags = new();
+			for (int i = 0; i < CollisionTags.Count; i++)
+			{
+				if(!tagHash.Add(CollisionTags[i].ToString()))
+				{
+					Debug.LogError($"Duplicate collision tag found: {CollisionTags[i]}.", this);
+				}
+				tags.Add(CollisionTags[i].ToString());
+			}
+			CollisionTagsStrings = tags.ToArray();	
 		}
 		
 		internal void RunSfxValidation()
