@@ -32,17 +32,6 @@ namespace GrygTools.Audio
 		[SerializeField]
 		internal AudioTagCollisionResponseData[] TagToTagCollisionData;
 		
-		[Header("Map textures, physical materials and tags back to this Tag")]
-		[SerializeField]
-		internal Texture2D[] Textures;
-		
-		[SerializeField]
-		internal PhysicsMaterial[] PhysicsMaterials;
-		
-		[FormerlySerializedAs("TagNames")]
-		[SerializeField, Tag]
-		internal string[] UnityTags;
-		
 		public override string ToString()
 		{
 			return $"{AudioTag}";

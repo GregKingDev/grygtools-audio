@@ -77,6 +77,8 @@ namespace GrygTools.Audio
 		
 		[SerializeField]
 		public AudioTagCollisionConfig DefaultAudioTagCollisionConfig;
+		[SerializeField]
+		public TestingAudioTagCollisionConfig TestingDefaultAudioTagCollisionConfig;
 		
 		[SerializeField]
 		[DefaultPropertyDrawerAttribute]

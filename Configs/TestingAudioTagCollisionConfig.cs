@@ -71,8 +71,8 @@ namespace GrygTools.Audio
 
 		private void OnValidate()
 		{
-			// ValidateRanges();
-			// BuildLookups();
+			ValidateRanges();
+			BuildLookups();
 		}
 
 		internal void BuildLookups()
@@ -105,8 +105,7 @@ namespace GrygTools.Audio
 			foreach (var range in m_ImpulseRanges)
 			{
 				// Unique holders to check for duplicates
-				List<HashSet<(AudioCollisionTag, AudioCollisionTag)>> uniqueTagToTagPerRange = 
-					new List<HashSet<(AudioCollisionTag, AudioCollisionTag)>> ();
+				
 				HashSet<(AudioCollisionTag, AudioCollisionTag)> tagToTagDuplicatesPerRange = 
 					new HashSet<(AudioCollisionTag, AudioCollisionTag)> ();
 				TagToTagDuplicatesPerRange.Add(tagToTagDuplicatesPerRange);
@@ -118,14 +117,43 @@ namespace GrygTools.Audio
 				
 				var tagTagLookup = new Dictionary<(AudioCollisionTag, AudioCollisionTag), SfxConfig>();
 				m_PerRangeTagTagLookup.Add(tagTagLookup);
+				HashSet<(AudioCollisionTag, AudioCollisionTag)> uniqueTagToTag = new HashSet<(AudioCollisionTag, AudioCollisionTag)>();
 				
 				foreach (var sfxInfo in range.CollisionSfx)
 				{
+					if(!uniqueTagsPerRange.Add(sfxInfo.AudioTag))
+					{
+						duplicateTagsPerRange.Add(sfxInfo.AudioTag);
+					}
 					foreach (var otherTagData in sfxInfo.TagToTagCollisionData)
 					{
 						foreach (var otherTag in otherTagData.OtherTags)
 						{
-							tagTagLookup[(sfxInfo.AudioTag, otherTag)] = otherTagData.SfxConfig;
+							// special case for if both tags are the same.
+							if (sfxInfo.AudioTag == otherTag)
+							{
+								if (uniqueTagToTag.Add((sfxInfo.AudioTag, otherTag)))
+								{
+									tagTagLookup[(otherTag, sfxInfo.AudioTag)] = otherTagData.SfxConfig;
+								}
+								else
+								{
+									tagToTagDuplicatesPerRange.Add((sfxInfo.AudioTag, otherTag));
+								}								
+							}
+							else
+							{
+								if (uniqueTagToTag.Add((sfxInfo.AudioTag, otherTag)) && uniqueTagToTag.Add((otherTag, sfxInfo.AudioTag)))
+								{
+									tagTagLookup[(sfxInfo.AudioTag, otherTag)] = otherTagData.SfxConfig;
+									tagTagLookup[(otherTag, sfxInfo.AudioTag)] = otherTagData.SfxConfig;
+								}
+								else
+								{
+									tagToTagDuplicatesPerRange.Add((sfxInfo.AudioTag, otherTag));
+									tagToTagDuplicatesPerRange.Add((otherTag, sfxInfo.AudioTag));
+								}
+							}
 						}
 					}
 				}
@@ -175,6 +203,28 @@ namespace GrygTools.Audio
 				}
 			}
 
+			for (int i = 0; i < TagToTagDuplicatesPerRange.Count; i++)
+			{
+				if(TagToTagDuplicatesPerRange[i].Count > 0)
+				{
+					string duplicates = "";
+					foreach (var dupes in TagToTagDuplicatesPerRange[i])
+					{
+						duplicates += $"Pair: {dupes.Item1} - {dupes.Item2}\n";
+						
+					}
+					Logger.LogWarning($"Found {TagToTagDuplicatesPerRange[i].Count} duplicate tag-tag pairs in a range {i}. Pairs: {duplicates}");
+				}
+			}
+
+			for (int i = 0; i < TagDuplicatesPerRange.Count; i++)
+			{
+				if(TagDuplicatesPerRange[i].Count > 0)
+				{
+					Logger.LogWarning($"Found {TagDuplicatesPerRange[i].Count} duplicate tags in a range.");
+				}
+			}
+			
 			if(UnityTagToTagDuplicates.Count > 0 || PhysMatToTagDuplicates.Count > 0 || TextureToTagDuplicates.Count > 0 || TagDuplicates.Count > 0)
 			{
 				Logger.LogWarning("Duplicates found in AudioTagMappings. TagDuplicates: " + TagDuplicates.Count + 
