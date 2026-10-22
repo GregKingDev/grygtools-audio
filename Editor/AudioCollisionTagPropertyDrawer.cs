@@ -10,11 +10,32 @@ namespace GrygTools.Audio
 	public class AudioCollisionTagDrawer : PropertyDrawer
 	{
 		private int idHash => "AudioCollisionTag".GetHashCode();
-		private Dictionary<int, string> optionsDictionary = new ();
-		private List<string> optionsList = new ();
-		private Dictionary<object, string> nameDictionary = new();
+		private static Dictionary<int, string> optionsDictionary = new ();
+		private static List<string> optionsList = new ();
+		private static Dictionary<object, string> nameDictionary = new();
 		
-		private static GrygAudioSettings m_Settings;
+		private static GrygAudioSettings Settings
+		{
+			get
+			{
+				if (_settings == null)
+				{
+					_settings = GrygAudioSettings.GetOrCreateSettings();
+				}
+				return _settings;
+			}
+		}
+		private static GrygAudioSettings _settings;
+		
+		static AudioCollisionTagDrawer()
+		{
+			GrygAudioSettings.CollisionTagsChanged += OnCollisionTagsChanged;
+		}
+
+		private static void OnCollisionTagsChanged(bool forceUpdate)
+		{
+			Populate(forceUpdate);
+		}
 
 		private void OnSelect(SerializedProperty property, string stringValue)
 		{
@@ -38,16 +59,19 @@ namespace GrygTools.Audio
 			return stringValue == property.FindPropertyRelative("_value").stringValue;
 		}
 
-		private void Populate()
+		internal static void Populate(bool forceUpdate = false)
 		{
-			if (nameDictionary.Count <= 0 ||  m_Settings.CollisionTags.Count != optionsList.Count)
+			if (forceUpdate || nameDictionary.Count <= 0 ||  Settings.CollisionTags.Count != (optionsList.Count - 1))
 			{
 				optionsDictionary.Clear();
 				optionsList.Clear();
 				nameDictionary.Clear();
-				foreach (string collisionTag in m_Settings.CollisionTags)
+				foreach (string collisionTag in Settings.CollisionTags)
 				{
-					optionsDictionary.Add(collisionTag.GetHashCode(), collisionTag);
+					if(!optionsDictionary.TryAdd(collisionTag.GetHashCode(), collisionTag))
+					{
+						Logger.LogWarning($"Duplicate collision tag found: {collisionTag}. This tag will be ignored.");
+					}
 				}
 				optionsDictionary.Add("-".GetHashCode(), "-");
 				
@@ -61,11 +85,6 @@ namespace GrygTools.Audio
 
 		public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
-	        if (m_Settings == null)
-			{
-				m_Settings = GrygAudioSettings.GetOrCreateSettings();
-			}
-	        
             if (!TypeCheck(property, out string errorString))
             {
                 GUIStyle errorStyle = "CN EntryErrorIconSmall";

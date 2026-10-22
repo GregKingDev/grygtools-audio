@@ -40,6 +40,8 @@ namespace GrygTools.Audio
 	
 	internal class GrygAudioSettings : ScriptableObject
 	{
+		public static event Action<bool> CollisionTagsChanged;
+		
 		private const string c_FolderPath = "Assets/Audio/Configs";
 		private const string c_AssetPath = c_FolderPath + "/DefaultSpatialAudioConfig.asset";
 		
@@ -266,6 +268,8 @@ namespace GrygTools.Audio
 				}
 			}
 
+			int oldCount = CollisionTagsStrings != null ? CollisionTagsStrings.Length : 0;
+			HashSet<string> oldTagHash = new HashSet<string>(CollisionTagsStrings ?? Array.Empty<string>());
 			HashSet<string> tagHash = new HashSet<string>();
 			List<string> tags = new();
 			for (int i = 0; i < CollisionTags.Count; i++)
@@ -276,7 +280,17 @@ namespace GrygTools.Audio
 				}
 				tags.Add(CollisionTags[i].ToString());
 			}
-			CollisionTagsStrings = tags.ToArray();	
+			CollisionTagsStrings = tags.ToArray();
+			
+			if (oldCount != CollisionTagsStrings.Length || !oldTagHash.SetEquals(tagHash))
+			{
+				CollisionTagsChanged?.Invoke(true);
+			}
+		}
+		
+		internal static void UpdateCollisionTags(bool forceUpdate)
+		{
+			CollisionTagsChanged?.Invoke(forceUpdate);
 		}
 		
 		internal void RunSfxValidation()

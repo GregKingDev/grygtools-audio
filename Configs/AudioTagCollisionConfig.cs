@@ -23,6 +23,9 @@ namespace GrygTools.Audio
 	[CreateAssetMenu(fileName = "AudioTagCollisionConfig", menuName = "GrygTools/Audio Tag Collision Config")]
 	public class AudioTagCollisionConfig : ScriptableObject
 	{
+		//TODO: should the texture and physmat mappings be to tags instead of sfx?
+		
+		
 		[SerializeField]
 		private ImpulseRangeCollisionSfx[] m_ImpulseRangeCollisionSfx;
 
