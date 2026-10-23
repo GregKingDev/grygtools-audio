@@ -6,6 +6,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using UnityEngine;
 using UnityEngine.Audio;
+using UnityEngine.Serialization;
 
 [assembly: InternalsVisibleTo("GrygToolsAudio.Editor")]
 namespace GrygTools.Audio
@@ -76,9 +77,7 @@ namespace GrygTools.Audio
 		public static AudioCollisionTag WaterCollisionTag;
 		
 		[SerializeField]
-		public AudioTagCollisionConfig DefaultAudioTagCollisionConfig;
-		[SerializeField]
-		public TestingAudioTagCollisionConfig TestingDefaultAudioTagCollisionConfig;
+		public TestingAudioTagCollisionConfig DefaultAudioTagCollisionConfig;
 		
 		[SerializeField]
 		[DefaultPropertyDrawerAttribute]

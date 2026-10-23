@@ -57,7 +57,8 @@ namespace GrygTools.Audio.SfxHandlers
 				
 				Vector3 impulse = m_Collider.attachedRigidbody.mass * m_Collider.attachedRigidbody.linearVelocity;
 				Log($"Water: Entering water with impulse sqr: {impulse.sqrMagnitude}.", gameObject);
-				if(AudioController.Instance.AudioSettings.DefaultAudioTagCollisionConfig.TryGetSfxKeyForTagTagCollision(impulse.sqrMagnitude, m_AudioCollisionTag, GrygAudioSettings.WaterCollisionTag, out SfxConfig sfxConfig))
+				if(AudioController.Instance.AudioSettings.DefaultAudioTagCollisionConfig.TryGetSfxKeyForTagTagCollision(
+					   impulse.sqrMagnitude, m_AudioCollisionTag, GrygAudioSettings.WaterCollisionTag, out SfxConfig sfxConfig))
 				{
 					AudioController.Instance.PlaySfx(sfxConfig, gameObject);
 				}
@@ -76,8 +77,14 @@ namespace GrygTools.Audio.SfxHandlers
 		{
 			SfxConfig sfxConfig;
 
-			if(m_InWater && m_UnderWaterSfxCollisionMode == UnderWaterSfxCollisionMode.IgnoreCollisionSfx)
+			if(m_InWater && (m_UnderWaterSfxCollisionMode == UnderWaterSfxCollisionMode.IgnoreCollisionSfx))
 			{
+				return;
+			}
+
+			if (m_InWater && m_UnderWaterSfxCollisionMode == UnderWaterSfxCollisionMode.PlayUnderWaterCollisionSfx)
+			{
+				Debug.LogWarning("UnderWaterSfxCollisionMode.PlayUnderWaterCollisionSfx is not implemented yet.");
 				return;
 			}
 
@@ -89,7 +96,11 @@ namespace GrygTools.Audio.SfxHandlers
 					return;
 				}
 				Log($"Tag to Tag collision {m_AudioCollisionTag} - {otherCollisionSfxHandler.m_AudioCollisionTag}", gameObject);
-				PlaySfxForTagType(otherCollisionSfxHandler.m_AudioCollisionTag, collision.impulse.sqrMagnitude);
+				if (AudioController.Instance.AudioSettings.DefaultAudioTagCollisionConfig.TryGetSfxKeyForTagTagCollision(
+					    collision.impulse.sqrMagnitude, m_AudioCollisionTag, otherCollisionSfxHandler.m_AudioCollisionTag, out sfxConfig))
+				{
+					AudioController.Instance.PlaySfx(sfxConfig, gameObject);
+				}
 				return;
 			}
 			
@@ -115,15 +126,6 @@ namespace GrygTools.Audio.SfxHandlers
 					AudioController.Instance.PlaySfx(sfxConfig, gameObject);
 					return;
 				}
-			}
-		}
-
-		private void PlaySfxForTagType(AudioCollisionTag otherAudioTag, float impulseSquared)
-		{
-			if (AudioController.Instance.AudioSettings.DefaultAudioTagCollisionConfig.TryGetSfxKeyForTagTagCollision(impulseSquared, m_AudioCollisionTag,
-				    otherAudioTag, out SfxConfig sfxConfig))
-			{
-				AudioController.Instance.PlaySfx(sfxConfig, gameObject);
 			}
 		}
 

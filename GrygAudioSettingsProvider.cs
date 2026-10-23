@@ -96,10 +96,11 @@ namespace GrygTools.Audio
 			{
 				musicSettings.RunMusicValidation();
 			}
+			
 			EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("DefaultAudioTagCollisionConfig"));
-			EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("TestingDefaultAudioTagCollisionConfig"));
 			EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("m_WaterCollisionTag"));
 			EditorGUILayout.PropertyField(m_CustomSettings.FindProperty("CollisionTags"));
+			
 			if (GUILayout.Button("Update Collision Tags"))
 			{
 				GrygAudioSettings.UpdateCollisionTags(true);
