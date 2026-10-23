@@ -1,9 +1,11 @@
 ﻿using GrygTools.Utils.Attributes;
 using GrygTools.Utils.Extensions;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
+using Object = UnityEngine.Object;
 
 namespace GrygTools.Audio.SfxHandlers
 {
@@ -127,8 +129,12 @@ namespace GrygTools.Audio.SfxHandlers
 			m_TextureLookup.Clear();
 			foreach (TexturesToSfx textureToSfx in m_TextureToSfxList)
 			{
+				if(textureToSfx.Textures == null) continue;
+				
 				foreach (Texture texture in textureToSfx.Textures)
 				{
+					if(texture == null) continue;
+					
 					if(!m_TextureLookup.TryAdd(texture, textureToSfx.SfxConfig))
 					{
 						Debug.LogWarning($"Duplicate texture: {texture}", this);
