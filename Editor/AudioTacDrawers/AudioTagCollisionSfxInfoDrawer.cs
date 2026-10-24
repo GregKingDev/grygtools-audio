@@ -13,7 +13,7 @@ namespace GrygTools.Audio
 		private static bool IsDuplicate(SerializedProperty property, string tagName)
 		{
 			if (string.IsNullOrEmpty(tagName)) return false;
-			if (property.serializedObject.targetObject is not TestingAudioTagCollisionConfig config) return false;
+			if (property.serializedObject.targetObject is not AudioTagCollisionConfig config) return false;
 
 			var match = s_RangeIndex.Match(property.propertyPath);
 			if (!match.Success) return false;

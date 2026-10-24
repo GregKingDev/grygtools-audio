@@ -5,24 +5,6 @@ using UnityEngine.Serialization;
 namespace GrygTools.Audio
 {
 	[Serializable]
-	internal class AudioTagCollisionSfx
-	{
-		[SerializeField, AudioCollisionTag]
-		internal AudioCollisionTag AudioCollisionTag1;
-		
-		[SerializeField, AudioCollisionTag]
-		internal AudioCollisionTag AudioCollisionTag2;
-		
-		[FormerlySerializedAs("SfxKey"), SerializeField]
-		internal SfxConfig SfxConfig;
-		
-		public override string ToString()
-		{
-			return $"{AudioCollisionTag1} - {AudioCollisionTag2} -> {SfxConfig.SfxName}";
-		}
-	}
-	
-	[Serializable]
 	internal class AudioTagCollisionSfxInfo
 	{
 		[SerializeField, AudioCollisionTag]
@@ -50,7 +32,7 @@ namespace GrygTools.Audio
 	}
 	
 	[Serializable]
-	internal class TestingImpulseRangeCollisionSfx
+	internal class ImpulseRangeCollisionSfx
 	{
 		[SerializeField,MinAndMaxRangeVec2(0f, 10000)]
 		internal Vector2 m_ImpulseRange = new Vector2(0, 10000);

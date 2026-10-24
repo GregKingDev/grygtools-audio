@@ -1,17 +1,14 @@
-﻿using GrygTools.Utils.Attributes;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Serialization;
 namespace GrygTools.Audio
 {
-// This needs an editor script thaat handles highlighting duplicates and what not and setting up the collision tag lookups
-// 	It will also need lookups for texture to audio tag, physics material to audio tag, and tag to audio tag.
 	[CreateAssetMenu(fileName = "NewAudioTagCollisionConfig", menuName = "GrygTools/New Audio Tag Collision Config")]
-	public class TestingAudioTagCollisionConfig : ScriptableObject
+	public class AudioTagCollisionConfig : ScriptableObject
 	{
 		[SerializeField]
-		private TestingImpulseRangeCollisionSfx[] m_ImpulseRanges;
+		private ImpulseRangeCollisionSfx[] m_ImpulseRanges;
+		internal ImpulseRangeCollisionSfx[] ImpulseRanges => m_ImpulseRanges;
 		
 		[SerializeField]
 		private AudioTagMappings[] m_AudioTagMappings;
@@ -233,67 +230,6 @@ namespace GrygTools.Audio
 			}
 			Logger.Log($"Built {m_PerRangeTagTagLookup.Count} tag-tag lookups, {m_TextureTagLookup.Count} tag-texture lookups, and {m_PhysMatTagLookup.Count} tag-physmat lookups.");
 		}
-		
-#region	effect lookups
-		internal bool TryGetSfxKeyForTagTagCollision(float impulse, AudioCollisionTag tag1, AudioCollisionTag tag2, out SfxConfig sfxConfig)
-		{
-			sfxConfig = null;
-			if(TryGetTagTagCollisionSfxDictForImpulse(impulse, out var collisionSfxDict))
-			{
-				if (collisionSfxDict.TryGetValue((tag1, tag2), out sfxConfig) || collisionSfxDict.TryGetValue((tag2, tag1), out sfxConfig))
-				{
-					return true;
-				}
-			}
-			return false;
-		}
-		
-		internal bool TryGetTagTagCollisionSfxDictForImpulse(float impulse, out Dictionary<(AudioCollisionTag, AudioCollisionTag), SfxConfig> collisionSfxDict)
-		{
-			for (int i = 0; i < m_ImpulseRanges.Length; i++)
-			{
-				var range = m_ImpulseRanges[i];
-				if (impulse >= range.m_ImpulseRange.x && impulse <= range.m_ImpulseRange.y)
-				{
-					collisionSfxDict = m_PerRangeTagTagLookup[i];
-					return true;
-				}
-			}
-			collisionSfxDict = null;
-			return false;
-		}
-		
-		internal bool TryGetSfxKeyForTagTextureCollision(float impulse, AudioCollisionTag tag, Texture texture, out SfxConfig sfxConfig)
-		{
-			sfxConfig = null;
-			if (m_TextureTagLookup.TryGetValue(texture, out var textureTag))
-			{
-				return TryGetSfxKeyForTagTagCollision(impulse, tag, textureTag, out sfxConfig);
-			}
-			return false;
-		}
-		
-		internal bool TryGetSfxKeyForTagPhysMatCollision(float impulse, AudioCollisionTag tag, PhysicsMaterial physicsMaterial, out SfxConfig sfxConfig)
-		{
-			sfxConfig = null;
-			if (m_PhysMatTagLookup.TryGetValue(physicsMaterial, out var physMatTag))
-			{
-				return TryGetSfxKeyForTagTagCollision(impulse, tag, physMatTag, out sfxConfig);
-			}
-			return false;
-		}
-		
-		internal bool TryGetSfxKeyForTagUnityTagCollision(float impulse, AudioCollisionTag tag, string unityTag, out SfxConfig sfxConfig)
-		{
-			sfxConfig = null;
-			if (m_UnityTagLookup.TryGetValue(unityTag, out var unityTagTag))
-			{
-				return TryGetSfxKeyForTagTagCollision(impulse, tag, unityTagTag, out sfxConfig);
-			}
-			return false;
-		}
-		
-#endregion
 		
 		internal bool ValidateRanges()
 		{

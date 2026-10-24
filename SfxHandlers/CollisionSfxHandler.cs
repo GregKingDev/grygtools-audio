@@ -57,7 +57,7 @@ namespace GrygTools.Audio.SfxHandlers
 				
 				Vector3 impulse = m_Collider.attachedRigidbody.mass * m_Collider.attachedRigidbody.linearVelocity;
 				Log($"Water: Entering water with impulse sqr: {impulse.sqrMagnitude}.", gameObject);
-				if(AudioController.Instance.AudioSettings.DefaultAudioTagCollisionConfig.TryGetSfxKeyForTagTagCollision(
+				if(AudioController.Instance.TryGetSfxKeyForTagTagCollision(
 					   impulse.sqrMagnitude, m_AudioCollisionTag, GrygAudioSettings.WaterCollisionTag, out SfxConfig sfxConfig))
 				{
 					AudioController.Instance.PlaySfx(sfxConfig, gameObject);
@@ -96,7 +96,7 @@ namespace GrygTools.Audio.SfxHandlers
 					return;
 				}
 				Log($"Tag to Tag collision {m_AudioCollisionTag} - {otherCollisionSfxHandler.m_AudioCollisionTag}", gameObject);
-				if (AudioController.Instance.AudioSettings.DefaultAudioTagCollisionConfig.TryGetSfxKeyForTagTagCollision(
+				if (AudioController.Instance.TryGetSfxKeyForTagTagCollision(
 					    collision.impulse.sqrMagnitude, m_AudioCollisionTag, otherCollisionSfxHandler.m_AudioCollisionTag, out sfxConfig))
 				{
 					AudioController.Instance.PlaySfx(sfxConfig, gameObject);
@@ -108,7 +108,7 @@ namespace GrygTools.Audio.SfxHandlers
 			{
 				var texture = terrain.GetDominantTerrainTexture(collision.contacts[0].point);
 				Log($"Terrain Texture collision: {m_AudioCollisionTag} - {(texture != null ? texture.name : "null")}", texture);
-				if (AudioController.Instance.AudioSettings.DefaultAudioTagCollisionConfig
+				if (AudioController.Instance
 				    .TryGetSfxKeyForTagTextureCollision(collision.impulse.sqrMagnitude, m_AudioCollisionTag,texture, out sfxConfig))
 				{
 					AudioController.Instance.PlaySfx(sfxConfig, gameObject);
@@ -119,7 +119,7 @@ namespace GrygTools.Audio.SfxHandlers
 			var colliders = collision.gameObject.GetComponents<Collider>();
 			foreach (Collider col in colliders)
 			{
-				if (AudioController.Instance.AudioSettings.DefaultAudioTagCollisionConfig.TryGetSfxKeyForTagPhysMatCollision(
+				if (AudioController.Instance.TryGetSfxKeyForTagPhysMatCollision(
 					    collision.impulse.sqrMagnitude, m_AudioCollisionTag, col.sharedMaterial, out sfxConfig))
 				{
 					Log($"Physics Material collision: {m_AudioCollisionTag} - {(col.sharedMaterial != null ? col.sharedMaterial.name : "null")}", col.sharedMaterial);

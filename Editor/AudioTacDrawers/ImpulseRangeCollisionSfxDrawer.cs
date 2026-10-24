@@ -2,8 +2,8 @@
 using UnityEngine;
 namespace GrygTools.Audio
 {
-	[CustomPropertyDrawer(typeof(TestingImpulseRangeCollisionSfx))]
-	internal class TestingImpulseRangeCollisionSfxDrawer : PropertyDrawer
+	[CustomPropertyDrawer(typeof(ImpulseRangeCollisionSfx))]
+	internal class ImpulseRangeCollisionSfxDrawer : PropertyDrawer
 	{
 		private const string k_ImpulseRangeName = "m_ImpulseRange";
 		private const string k_CollisionSfxName = "m_CollisionSfx";

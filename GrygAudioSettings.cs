@@ -4,10 +4,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.Audio;
-using UnityEngine.Serialization;
-
 [assembly: InternalsVisibleTo("GrygToolsAudio.Editor")]
 namespace GrygTools.Audio
 {
@@ -77,7 +76,7 @@ namespace GrygTools.Audio
 		public static AudioCollisionTag WaterCollisionTag;
 		
 		[SerializeField]
-		public TestingAudioTagCollisionConfig DefaultAudioTagCollisionConfig;
+		public AudioTagCollisionConfig DefaultAudioTagCollisionConfig;
 		
 		[SerializeField]
 		[DefaultPropertyDrawerAttribute]
@@ -90,15 +89,15 @@ namespace GrygTools.Audio
 			if (settings == null)
 			{
 #if UNITY_EDITOR
-				if (!UnityEditor.AssetDatabase.IsValidFolder("Assets/Resources"))
+				if (!AssetDatabase.IsValidFolder("Assets/Resources"))
 				{
-					UnityEditor.AssetDatabase.CreateFolder("Assets", "Resources");
+					AssetDatabase.CreateFolder("Assets", "Resources");
 				}
-				settings = ScriptableObject.CreateInstance<GrygAudioSettings>();
+				settings = CreateInstance<GrygAudioSettings>();
 				settings.SfxCategories = new List<SfxCategorySettings>();
 				
-				UnityEditor.AssetDatabase.CreateAsset(settings, AudioSettingsPath);
-				UnityEditor.AssetDatabase.SaveAssets();
+				AssetDatabase.CreateAsset(settings, AudioSettingsPath);
+				AssetDatabase.SaveAssets();
 #endif
 			}
 			
@@ -209,9 +208,9 @@ namespace GrygTools.Audio
 		}
 		
 #if UNITY_EDITOR
-		public static UnityEditor.SerializedObject GetSerializedSettings()
+		public static SerializedObject GetSerializedSettings()
 		{
-			return new UnityEditor.SerializedObject(GetOrCreateSettings());
+			return new SerializedObject(GetOrCreateSettings());
 		}
 		
 		internal static async void AudioSettingsConfigCheck()
@@ -219,8 +218,8 @@ namespace GrygTools.Audio
 			var audioSettings = GetOrCreateSettings();
 			if(audioSettings.DefaultSpatialAudioConfig == null)
 			{
-				var settings = new UnityEditor.SerializedObject(audioSettings);
-				SpatialAudioConfig existingAsset = UnityEditor.AssetDatabase.LoadAssetAtPath<SpatialAudioConfig>(c_AssetPath);
+				var settings = new SerializedObject(audioSettings);
+				SpatialAudioConfig existingAsset = AssetDatabase.LoadAssetAtPath<SpatialAudioConfig>(c_AssetPath);
 				
 				if (existingAsset == null)
 				{
@@ -228,9 +227,9 @@ namespace GrygTools.Audio
 					{
 						Directory.CreateDirectory(c_FolderPath);
 					}
-					SpatialAudioConfig newConfig = ScriptableObject.CreateInstance<SpatialAudioConfig>();
-					UnityEditor.AssetDatabase.CreateAsset(newConfig, c_AssetPath);
-					UnityEditor.AssetDatabase.SaveAssets();
+					SpatialAudioConfig newConfig = CreateInstance<SpatialAudioConfig>();
+					AssetDatabase.CreateAsset(newConfig, c_AssetPath);
+					AssetDatabase.SaveAssets();
 					existingAsset = newConfig;
 					Debug.LogWarning($"DefaultSpatialAudioConfig asset not set and not found at default location. A new one has been created at {c_AssetPath}. .");
 				}
@@ -238,21 +237,21 @@ namespace GrygTools.Audio
 				{
 					Debug.LogWarning($"DefaultSpatialAudioConfig asset not set but found at default location. Using existing asset at {c_AssetPath}. .");
 				}
-				UnityEditor.AssetDatabase.SaveAssets();
+				AssetDatabase.SaveAssets();
 				settings.FindProperty("DefaultSpatialAudioConfig").objectReferenceValue = existingAsset;
 				settings.ApplyModifiedProperties();
-				UnityEditor.EditorUtility.SetDirty(settings.targetObject);
+				EditorUtility.SetDirty(settings.targetObject);
 				
 				//OnSettingsChanged has a minor delay to allow for serialization and disk write
 				await UniTask.WaitForSeconds(0.1f);
-				var serializedSettings = GrygAudioSettings.GetSerializedSettings();
+				var serializedSettings = GetSerializedSettings();
 				
 				if (serializedSettings != null)
 				{
 					serializedSettings.Update();
 					serializedSettings.ApplyModifiedPropertiesWithoutUndo();
 				}
-				UnityEditor.SettingsService.NotifySettingsProviderChanged();
+				SettingsService.NotifySettingsProviderChanged();
 			}
 		}
 
@@ -338,7 +337,7 @@ namespace GrygTools.Audio
 			
 			if (sfxIndecesToBeRemoved.Count > 0 || musicIndecesToBeToggled.Count > 0)
 			{
-				UnityEditor.SettingsService.NotifySettingsProviderChanged();
+				SettingsService.NotifySettingsProviderChanged();
 			}
 		}
 
@@ -365,21 +364,21 @@ namespace GrygTools.Audio
 			
 			if (musicIndecesToBeRemoved.Count > 0)
 			{
-				UnityEditor.SettingsService.NotifySettingsProviderChanged();
+				SettingsService.NotifySettingsProviderChanged();
 			}
 		}
 #endif
 	}
 	
 	#if UNITY_EDITOR
-	[UnityEditor.InitializeOnLoad]
+	[InitializeOnLoad]
 	public static class SpatialAudioPackageInitializer
 	{
 		static SpatialAudioPackageInitializer()
 		{
 			// Use delayCall to ensure Unity's AssetDatabase is fully initialized 
 			// and safe to modify before running your configuration check.
-			UnityEditor.EditorApplication.delayCall += CheckAndSetupSpatialAudio;
+			EditorApplication.delayCall += CheckAndSetupSpatialAudio;
 		}
 		private static void CheckAndSetupSpatialAudio()
 		{

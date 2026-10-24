@@ -3,7 +3,6 @@ using GrygTools.Utils.Core;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Threading.Tasks;
 using Unity.Profiling;
 using UnityEngine;
@@ -769,5 +768,91 @@ namespace GrygTools.Audio
 			m_PlayingTrack.SetPosition(position);
 		}
 #endregion music
+
+#region collision sfx lookup
+		internal bool TryGetSfxKeyForTagTagCollision(float impulse, AudioCollisionTag tag1, AudioCollisionTag tag2, out SfxConfig sfxConfig)
+		{
+			sfxConfig = null;
+			if(TryGetTagTagCollisionSfxDictForImpulse(impulse, out var collisionSfxDict))
+			{
+				if (collisionSfxDict.TryGetValue((tag1, tag2), out sfxConfig) || collisionSfxDict.TryGetValue((tag2, tag1), out sfxConfig))
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+		
+		internal bool TryGetTagTagCollisionSfxDictForImpulse(float impulse, 
+			out Dictionary<(AudioCollisionTag, AudioCollisionTag), SfxConfig> collisionSfxDict, AudioTagCollisionConfig config = null)
+		{
+			config = config == null ? AudioSettings.DefaultAudioTagCollisionConfig : config;
+			var impulseRanges = config.ImpulseRanges;
+			for (int i = 0; i < impulseRanges.Length; i++)
+			{
+				var range = impulseRanges[i];
+				if (impulse >= range.m_ImpulseRange.x && impulse <= range.m_ImpulseRange.y)
+				{
+					collisionSfxDict = config.PerRangeTagTagLookup[i];
+					return true;
+				}
+			}
+			collisionSfxDict = null;
+			return false;
+		}
+		
+		internal bool TryGetSfxKeyForTagTextureCollision(float impulse, AudioCollisionTag audioTag, Texture texture, out SfxConfig sfxConfig, AudioTagCollisionConfig config = null)
+		{
+			config = config == null ? AudioSettings.DefaultAudioTagCollisionConfig : config;
+			sfxConfig = null;
+			if (config.TextureTagLookup.TryGetValue(texture, out var textureTag))
+			{
+				return TryGetSfxKeyForTagTagCollision(impulse, audioTag, textureTag, out sfxConfig);
+			}
+			return false;
+		}
+		
+		internal bool TryGetSfxKeyForTagPhysMatCollision(float impulse, AudioCollisionTag audioTag, PhysicsMaterial physicsMaterial, 
+			out SfxConfig sfxConfig, AudioTagCollisionConfig config = null)
+		{
+			config = config == null ? AudioSettings.DefaultAudioTagCollisionConfig : config;
+			sfxConfig = null;
+			if (config.PhysMatTagLookup.TryGetValue(physicsMaterial, out var physMatTag))
+			{
+				return TryGetSfxKeyForTagTagCollision(impulse, audioTag, physMatTag, out sfxConfig);
+			}
+			return false;
+		}
+		
+		internal bool TryGetSfxKeyForTagUnityTagCollision(float impulse, AudioCollisionTag audioTag, string unityTag, out SfxConfig sfxConfig,
+			AudioTagCollisionConfig config = null)
+		{
+			config = config == null ? AudioSettings.DefaultAudioTagCollisionConfig : config;
+			sfxConfig = null;
+			if (config.UnityTagLookup.TryGetValue(unityTag, out var unityTagTag))
+			{
+				return TryGetSfxKeyForTagTagCollision(impulse, audioTag, unityTagTag, out sfxConfig);
+			}
+			return false;
+		}
+		
+		internal bool TryGetAudioTagForTexture(Texture texture, out AudioCollisionTag audioTag, AudioTagCollisionConfig config = null)
+		{
+			config = config == null ? AudioSettings.DefaultAudioTagCollisionConfig : config;
+			return config.TextureTagLookup.TryGetValue(texture, out audioTag);
+		}
+		
+		internal bool TryGetAudioTagForPhysicsMaterial(PhysicsMaterial physicsMaterial, out AudioCollisionTag audioTag, AudioTagCollisionConfig config = null)
+		{
+			config = config == null ? AudioSettings.DefaultAudioTagCollisionConfig : config;
+			return config.PhysMatTagLookup.TryGetValue(physicsMaterial, out audioTag);
+		}
+		
+		internal bool TryGetAudioTagForUnityTag(string unityTag, out AudioCollisionTag audioTag, AudioTagCollisionConfig config = null)
+		{
+			config = config == null ? AudioSettings.DefaultAudioTagCollisionConfig : config;
+			return config.UnityTagLookup.TryGetValue(unityTag, out audioTag);
+		}
+#endregion
 	}
 }

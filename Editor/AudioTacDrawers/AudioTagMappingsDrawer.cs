@@ -27,7 +27,7 @@ namespace GrygTools.Audio
 		
 		private static bool IsDuplicate(SerializedProperty property, string tagName)
 		{
-			if (property.serializedObject.targetObject is not TestingAudioTagCollisionConfig config) return false;
+			if (property.serializedObject.targetObject is not AudioTagCollisionConfig config) return false;
 
 			if (!string.IsNullOrEmpty(tagName) && config.TagDuplicates.Contains(new AudioCollisionTag(tagName)))
 				return true;
