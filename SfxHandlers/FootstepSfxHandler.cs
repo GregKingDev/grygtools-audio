@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
+using Object = UnityEngine.Object;
 
 namespace GrygTools.Audio.SfxHandlers
 {
@@ -33,19 +34,16 @@ namespace GrygTools.Audio.SfxHandlers
 		private float m_CastDistance = 2f;
 		
 		[SerializeField]
-		private List<TexturesToSfx> m_TextureToSfxList = new List<TexturesToSfx>();
-		[SerializeField]
-		private List<PhysicsMaterialsToSfx> m_PhysicsMaterialToSfxList = new List<PhysicsMaterialsToSfx>();
-		[SerializeField]
-		private List<TagsToSfx> m_TagToSfxList = new List<TagsToSfx>();
+		private AudioTagCollisionResponseData[] m_TagCollisionSfx;
 		
 		[SerializeField]
 		private SfxConfig m_DefaultFootstepSfx;
 		
-		private readonly Dictionary<PhysicsMaterial, SfxConfig> m_PhysicsMaterialLookup = new Dictionary<PhysicsMaterial, SfxConfig>();
-		private readonly Dictionary<Texture, SfxConfig> m_TextureLookup = new Dictionary<Texture, SfxConfig>();
-		private readonly Dictionary<string, SfxConfig> m_TagLookup = new Dictionary<string, SfxConfig>();
-		RaycastHit[] m_RayHits = new RaycastHit[1];
+		[SerializeField]
+		private AudioTagCollisionConfig m_AudioConfigOverride;
+		
+		private readonly Dictionary<AudioCollisionTag, SfxConfig> m_TagToSfxLookup = new Dictionary<AudioCollisionTag, SfxConfig>();
+		private readonly RaycastHit[] m_RayHits = new RaycastHit[1];
 
 		private void Awake()
 		{
@@ -62,48 +60,56 @@ namespace GrygTools.Audio.SfxHandlers
 
 		public void PlaySfx(string eventName)
 		{
-			if (eventName != m_EventName)
+			if (eventName != m_EventName || m_TagToSfxLookup.Count == 0)
 			{
 				return;
 			}
-
-			if (m_PhysicsMaterialLookup.Count > 0 || m_TextureLookup.Count > 0 || m_TagLookup.Count > 0)
+			
+			AudioTagCollisionConfig tagConfig = m_AudioConfigOverride != null ? 
+				m_AudioConfigOverride : AudioController.Instance.AudioSettings.DefaultAudioTagCollisionConfig;
+			
+			if (Physics.RaycastNonAlloc(m_CastOrigin.position + m_CastOffset, Vector3.down, m_RayHits, m_CastDistance, m_CastLayers) > 0
+			    && m_RayHits[0].collider != null)
 			{
-				if (Physics.RaycastNonAlloc(m_CastOrigin.position + m_CastOffset, Vector3.down, m_RayHits, m_CastDistance, m_CastLayers) > 0
-				    && m_RayHits[0].collider != null)
+				SfxConfig sfxConfig;
+				if (m_RayHits[0].collider.TryGetComponent(out CollisionSfxHandler collisionSfxHandler)
+				    && m_TagToSfxLookup.TryGetValue(collisionSfxHandler.AudioCollisionTag, out sfxConfig))
 				{
-					SfxConfig sfxConfig;
-					if (m_RayHits[0].collider.TryGetComponent(out Terrain terrain))
-					{
-						var texture = terrain.GetDominantTerrainTexture(m_RayHits[0].point);
-						Log($"Dominant Terrain Texture: {(texture != null ? texture.name : "null")}", texture);
-
-						if (m_TextureLookup.TryGetValue(texture, out sfxConfig) && sfxConfig.IsSet())
-						{
-							AudioController.Instance.PlaySfx(sfxConfig, gameObject);
-							return;
-						}
-					}
-
-					Log($"Physics Material: {(m_RayHits[0].collider.sharedMaterial == null ? "null" : m_RayHits[0].collider.sharedMaterial.name)}", m_RayHits[0].collider.sharedMaterial);
-					if (m_RayHits[0].collider.sharedMaterial != null 
-					    && m_PhysicsMaterialLookup.TryGetValue(m_RayHits[0].collider.sharedMaterial, out sfxConfig) 
-					    && sfxConfig.IsSet())
-					{
-						AudioController.Instance.PlaySfx(sfxConfig, gameObject);
-						return;
-					}
-
-					Log($"Tag: {(m_RayHits[0].collider == null ? "null" : m_RayHits[0].collider.tag)}", m_RayHits[0].collider);
-					if (!string.IsNullOrEmpty(m_RayHits[0].collider.tag) 
-					    && m_TagLookup.TryGetValue(m_RayHits[0].collider.tag, out sfxConfig) 
-					    && sfxConfig.IsSet())
+					AudioController.Instance.PlaySfx(sfxConfig, gameObject);
+					return;
+				}
+				
+				if (m_RayHits[0].collider.TryGetComponent(out Terrain terrain))
+				{
+					var texture = terrain.GetDominantTerrainTexture(m_RayHits[0].point);
+					Log($"Dominant Terrain Texture: {(texture != null ? texture.name : "null")}", texture);
+					if (AudioController.Instance.TryGetAudioTagForTexture(texture, out AudioCollisionTag textureTag, tagConfig)
+					    && m_TagToSfxLookup.TryGetValue(textureTag, out sfxConfig))
 					{
 						AudioController.Instance.PlaySfx(sfxConfig, gameObject);
 						return;
 					}
 				}
+
+				Log($"Physics Material: {(m_RayHits[0].collider.sharedMaterial == null ? "null" : m_RayHits[0].collider.sharedMaterial.name)}", m_RayHits[0].collider.sharedMaterial);
+				if (m_RayHits[0].collider.sharedMaterial != null 
+				    && AudioController.Instance.TryGetAudioTagForPhysicsMaterial(m_RayHits[0].collider.sharedMaterial,
+					    out AudioCollisionTag physMatTag, tagConfig) && m_TagToSfxLookup.TryGetValue(physMatTag, out sfxConfig))
+				{
+					AudioController.Instance.PlaySfx(sfxConfig, gameObject);
+					return;
+				}
+
+				Log($"Tag: {(m_RayHits[0].collider == null ? "null" : m_RayHits[0].collider.tag)}", m_RayHits[0].collider);
+				if (!string.IsNullOrEmpty(m_RayHits[0].collider.tag) 
+				    && AudioController.Instance.TryGetAudioTagForUnityTag(m_RayHits[0].collider.tag, out AudioCollisionTag audioTag, tagConfig)
+				    && m_TagToSfxLookup.TryGetValue(audioTag, out sfxConfig))
+				{
+					AudioController.Instance.PlaySfx(sfxConfig, gameObject);
+					return;
+				}
 			}
+			
 			if (m_DefaultFootstepSfx != null && m_DefaultFootstepSfx.IsSet())
 			{
 				AudioController.Instance.PlaySfx(m_DefaultFootstepSfx, gameObject);
@@ -112,41 +118,17 @@ namespace GrygTools.Audio.SfxHandlers
 		
 		private void BuildLookup()
 		{
-			m_PhysicsMaterialLookup.Clear();
-			foreach (PhysicsMaterialsToSfx materialToSfx in m_PhysicsMaterialToSfxList)
+			m_TagToSfxLookup.Clear();
+			foreach (var tagCollisionSfx in m_TagCollisionSfx)
 			{
-				foreach (PhysicsMaterial material in materialToSfx.PhysicsMaterials)
+				if(tagCollisionSfx == null) continue;
+				if(tagCollisionSfx.SfxConfig == null) continue;
+
+				foreach (AudioCollisionTag otherTag in tagCollisionSfx.OtherTags)
 				{
-					if (!m_PhysicsMaterialLookup.TryAdd(material, materialToSfx.SfxConfig))
+					if(!m_TagToSfxLookup.TryAdd(otherTag, tagCollisionSfx.SfxConfig))
 					{
-						Debug.LogWarning($"Duplicate physics material: {material}", this);
-					}
-				}
-			}
-			
-			m_TextureLookup.Clear();
-			foreach (TexturesToSfx textureToSfx in m_TextureToSfxList)
-			{
-				foreach (Texture texture in textureToSfx.Textures)
-				{
-					if(!m_TextureLookup.TryAdd(texture, textureToSfx.SfxConfig))
-					{
-						Debug.LogWarning($"Duplicate texture: {texture}", this);
-					}
-				}
-			}
-			
-			m_TagLookup.Clear();
-			foreach (TagsToSfx tagToSfx in m_TagToSfxList)
-			{
-				foreach (var tagEntry in tagToSfx.Tags)
-				{
-					if(!string.IsNullOrEmpty(tagEntry))
-					{
-						if(!m_TagLookup.TryAdd(tagEntry, tagToSfx.SfxConfig))
-						{
-							Debug.LogWarning($"Duplicate tag: {tagEntry}", this);
-						}
+						Debug.LogWarning($"Duplicate tag: {otherTag}", this);
 					}
 				}
 			}

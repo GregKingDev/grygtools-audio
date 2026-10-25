@@ -1,42 +1,33 @@
-﻿using GrygTools.Utils.Attributes;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Serialization;
 namespace GrygTools.Audio
 {
-	[Serializable]
-	internal class ImpulseRangeCollisionSfx
-	{
-		[SerializeField,MinAndMaxRangeVec2(0f, 10000)]
-		internal Vector2 m_ImpulseRange = new Vector2(0, 10000);
-		[SerializeField]
-		private AudioTagCollisionSfx[] m_CollisionSfx;
-		internal AudioTagCollisionSfx[] CollisionSfx => m_CollisionSfx;
-
-		[FormerlySerializedAs("m_TextureCollisionSfx")]
-		[SerializeField]
-		private AudioTagToTexturePhysMatCollisionSfx[] m_TextureAndMaterialCollisionSfx;
-		internal AudioTagToTexturePhysMatCollisionSfx[] TextureAndMaterialCollisionSfx => m_TextureAndMaterialCollisionSfx;
-	}
-	
-	[CreateAssetMenu(fileName = "AudioTagCollisionConfig", menuName = "GrygTools/Audio Tag Collision Config")]
+	[CreateAssetMenu(fileName = "NewAudioTagCollisionConfig", menuName = "GrygTools/New Audio Tag Collision Config")]
 	public class AudioTagCollisionConfig : ScriptableObject
 	{
 		[SerializeField]
-		private ImpulseRangeCollisionSfx[] m_ImpulseRangeCollisionSfx;
-
-#region Tag Lookups  
+		private ImpulseRangeCollisionSfx[] m_ImpulseRanges;
+		internal ImpulseRangeCollisionSfx[] ImpulseRanges => m_ImpulseRanges;
+		
+		[SerializeField]
+		private AudioTagMappings[] m_AudioTagMappings;
+		internal AudioTagMappings[] AudioTagMappings => m_AudioTagMappings;
+		
+#region lookups
 		private readonly List<Dictionary<(AudioCollisionTag, AudioCollisionTag), SfxConfig>> m_PerRangeTagTagLookup = new List<Dictionary<(AudioCollisionTag, AudioCollisionTag), SfxConfig>>();
 		internal List<Dictionary<(AudioCollisionTag, AudioCollisionTag), SfxConfig>> PerRangeTagTagLookup => m_PerRangeTagTagLookup;
+		
+		private readonly Dictionary<Texture, AudioCollisionTag> m_TextureTagLookup = new Dictionary<Texture, AudioCollisionTag>();
+		internal Dictionary<Texture, AudioCollisionTag> TextureTagLookup => m_TextureTagLookup;
 
-		private readonly List<Dictionary<(AudioCollisionTag,Texture), SfxConfig>> m_PerRangeTagTextureLookup = new List<Dictionary<(AudioCollisionTag,Texture), SfxConfig>>();
-		internal List<Dictionary<(AudioCollisionTag,Texture), SfxConfig>> PerRangeTagTextureLookup => m_PerRangeTagTextureLookup;
-
-		private readonly List<Dictionary<(AudioCollisionTag,PhysicsMaterial), SfxConfig>> m_PerRangeTagPhysMatLookup = new List<Dictionary<(AudioCollisionTag,PhysicsMaterial), SfxConfig>>();
-		internal List<Dictionary<(AudioCollisionTag,PhysicsMaterial), SfxConfig>> PerRangeTagPhysMatLookup => m_PerRangeTagPhysMatLookup;
+		private readonly Dictionary<PhysicsMaterial, AudioCollisionTag> m_PhysMatTagLookup = new Dictionary<PhysicsMaterial, AudioCollisionTag>();
+		internal Dictionary<PhysicsMaterial, AudioCollisionTag> PhysMatTagLookup => m_PhysMatTagLookup;
+		
+		private readonly Dictionary<string, AudioCollisionTag> m_UnityTagLookup = new Dictionary<string, AudioCollisionTag>();
+		internal Dictionary<string, AudioCollisionTag> UnityTagLookup => m_UnityTagLookup;
 #endregion
-
+		
 #region Duplicate Management
 		internal List<HashSet<(AudioCollisionTag, AudioCollisionTag)>> TagToTagDuplicatesPerRange
 		{
@@ -48,254 +39,241 @@ namespace GrygTools.Audio
 			get; private set;
 		} = new List<HashSet<AudioCollisionTag>> ();
 		
-		internal List<HashSet<(AudioCollisionTag, Texture)>> TagToTextureDuplicatesPerRange
+		internal HashSet<AudioCollisionTag> TagDuplicates
 		{
 			get; private set;
-		} = new List<HashSet<(AudioCollisionTag, Texture)>>();
+		} = new HashSet<AudioCollisionTag>();
 		
-		internal List<HashSet<(AudioCollisionTag, PhysicsMaterial)>> TagToPhysicsMaterialDuplicatesPerRange
+		internal HashSet<Texture> TextureToTagDuplicates
 		{
 			get; private set;
-		} = new List<HashSet<(AudioCollisionTag, PhysicsMaterial)>>();
+		} = new HashSet<Texture>();
+		
+		internal HashSet<PhysicsMaterial> PhysMatToTagDuplicates
+		{
+			get; private set;
+		} = new HashSet<PhysicsMaterial>();
+		
+		internal HashSet<string> UnityTagToTagDuplicates
+		{
+			get; private set;
+		} = new HashSet<string>();
 #endregion
+
+		private void OnDisable()
+		{
+			ValidateRanges();
+			BuildLookups();
+		}
 
 		private void OnValidate()
 		{
-			ValidatePairs();
 			ValidateRanges();
+			BuildLookups();
 		}
 
-		private void ValidatePairs()
+		internal void BuildLookups()
 		{
 			//Range lookups
 			m_PerRangeTagTagLookup.Clear();
-			m_PerRangeTagTextureLookup.Clear();
-			m_PerRangeTagPhysMatLookup.Clear();
-			//Duplicate trackers
-			TagDuplicatesPerRange.Clear();
+			
+			//Mapping lookups
+			m_TextureTagLookup.Clear();
+			m_PhysMatTagLookup.Clear();
+			m_UnityTagLookup.Clear();
+			
+			//Handle duplicates in the ranges
 			TagToTagDuplicatesPerRange.Clear();
-			TagToTextureDuplicatesPerRange.Clear();
-			TagToPhysicsMaterialDuplicatesPerRange.Clear();
+			TagDuplicatesPerRange.Clear();
 			
-			HashSet<(AudioCollisionTag, AudioCollisionTag)> uniquePairs = new HashSet<(AudioCollisionTag, AudioCollisionTag)>();
-			HashSet<(AudioCollisionTag, Texture)> uniqueTexturePairs = new HashSet<(AudioCollisionTag, Texture)>();
-			HashSet<(AudioCollisionTag, PhysicsMaterial)> uniquePhysicsMaterialPairs = new HashSet<(AudioCollisionTag, PhysicsMaterial)>();
+			//Handle duplicates in AudioTagMappings 
+			TagDuplicates.Clear();
 			
-			//Iterate each Impulse Range
-			foreach (ImpulseRangeCollisionSfx collisionSfxRange in m_ImpulseRangeCollisionSfx)
+			//Handle duplicates in the mappings
+			TextureToTagDuplicates.Clear();
+			PhysMatToTagDuplicates.Clear();
+			UnityTagToTagDuplicates.Clear();
+			
+			HashSet<AudioCollisionTag> uniqueTags = new HashSet<AudioCollisionTag>();
+			HashSet<Texture> uniqueTextureToTag = new HashSet<Texture>();
+			HashSet<PhysicsMaterial> uniquePhysMatToTag = new HashSet<PhysicsMaterial>();
+			HashSet<string> uniqueUnityTagToTag = new HashSet<string>();
+			
+			foreach (var range in m_ImpulseRanges)
 			{
-				uniquePairs.Clear();
-				uniqueTexturePairs.Clear();
-				uniquePhysicsMaterialPairs.Clear();
+				// Unique holders to check for duplicates
 				
-				var rangeTagDuplicates = new HashSet<AudioCollisionTag>();
-				TagDuplicatesPerRange.Add(rangeTagDuplicates);
-				var rangeTagToTagDuplicates = new HashSet<(AudioCollisionTag, AudioCollisionTag)>();
-				TagToTagDuplicatesPerRange.Add(rangeTagToTagDuplicates);
-				var rangeTextureDuplicates = new HashSet<(AudioCollisionTag, Texture)>();
-				TagToTextureDuplicatesPerRange.Add(rangeTextureDuplicates);
-				var rangePhysicsMaterialDuplicates = new HashSet<(AudioCollisionTag, PhysicsMaterial)>();
-				TagToPhysicsMaterialDuplicatesPerRange.Add(rangePhysicsMaterialDuplicates);
+				HashSet<(AudioCollisionTag, AudioCollisionTag)> tagToTagDuplicatesPerRange = 
+					new HashSet<(AudioCollisionTag, AudioCollisionTag)> ();
+				TagToTagDuplicatesPerRange.Add(tagToTagDuplicatesPerRange);
 				
-				var tagTagSfxDict = new Dictionary<(AudioCollisionTag, AudioCollisionTag), SfxConfig>();
-				m_PerRangeTagTagLookup.Add(tagTagSfxDict);
+				HashSet<AudioCollisionTag> uniqueTagsPerRange = new HashSet<AudioCollisionTag>();
+				HashSet<AudioCollisionTag> duplicateTagsPerRange = new HashSet<AudioCollisionTag>();
+				TagDuplicatesPerRange.Add(duplicateTagsPerRange);
 				
-				var tagTextureSfxDict = new Dictionary<(AudioCollisionTag, Texture), SfxConfig>();
-				m_PerRangeTagTextureLookup.Add(tagTextureSfxDict);
 				
-				var tagPhysicsMaterialSfxDict = new Dictionary<(AudioCollisionTag, PhysicsMaterial), SfxConfig>();
-				m_PerRangeTagPhysMatLookup.Add(tagPhysicsMaterialSfxDict);
+				var tagTagLookup = new Dictionary<(AudioCollisionTag, AudioCollisionTag), SfxConfig>();
+				m_PerRangeTagTagLookup.Add(tagTagLookup);
+				HashSet<(AudioCollisionTag, AudioCollisionTag)> uniqueTagToTag = new HashSet<(AudioCollisionTag, AudioCollisionTag)>();
 				
-				foreach (AudioTagCollisionSfx collisionSfx in collisionSfxRange.CollisionSfx)
+				foreach (var sfxInfo in range.CollisionSfx)
 				{
-					//Special case for if both items are the same
-					if(collisionSfx.AudioCollisionTag1 == collisionSfx.AudioCollisionTag2)
+					if(!uniqueTagsPerRange.Add(sfxInfo.AudioTag))
 					{
-						if (uniquePairs.Add((collisionSfx.AudioCollisionTag1, collisionSfx.AudioCollisionTag2)))
+						duplicateTagsPerRange.Add(sfxInfo.AudioTag);
+					}
+					foreach (var otherTagData in sfxInfo.TagToTagCollisionData)
+					{
+						foreach (var otherTag in otherTagData.OtherTags)
 						{
-							tagTagSfxDict.Add((collisionSfx.AudioCollisionTag1, collisionSfx.AudioCollisionTag2), collisionSfx.SfxConfig);
-						}
-						else
-						{
-							rangeTagToTagDuplicates.Add((collisionSfx.AudioCollisionTag2, collisionSfx.AudioCollisionTag1));
-							Debug.LogWarning($"Duplicate collision pair found: {collisionSfx.AudioCollisionTag1} - {collisionSfx.AudioCollisionTag2}. Only the first occurrence will be used.", this);
-						}
-					}
-					else if (uniquePairs.Add((collisionSfx.AudioCollisionTag1, collisionSfx.AudioCollisionTag2))
-					         && uniquePairs.Add((collisionSfx.AudioCollisionTag2, collisionSfx.AudioCollisionTag1)))
-					{
-						tagTagSfxDict.Add((collisionSfx.AudioCollisionTag1, collisionSfx.AudioCollisionTag2), collisionSfx.SfxConfig);
-					}
-					else
-					{
-						rangeTagToTagDuplicates.Add((collisionSfx.AudioCollisionTag1, collisionSfx.AudioCollisionTag2));
-						rangeTagToTagDuplicates.Add((collisionSfx.AudioCollisionTag2, collisionSfx.AudioCollisionTag1));
-						Debug.LogWarning($"Duplicate collision pair found: {collisionSfx.AudioCollisionTag1} - {collisionSfx.AudioCollisionTag2}. Only the first occurrence will be used.", this);
-					}
-				}
-
-				HashSet<AudioCollisionTag> uniqueTags = new HashSet<AudioCollisionTag>();
-				//Iterate each AudioTagToTexturePhysMatCollisionSfx entry in the range and validate duplicates for tags, textures and physics materials
-				foreach (AudioTagToTexturePhysMatCollisionSfx entry in collisionSfxRange.TextureAndMaterialCollisionSfx)
-				{
-					if (!uniqueTags.Add(entry.AudioCollisionTag))
-					{
-						rangeTagDuplicates.Add(entry.AudioCollisionTag);
-					}
-					foreach (TexturesAndMaterialsToSfx texturesAndMaterialsToSfx in entry.TexturesAndMaterialsToSfx)
-					{
-						foreach (Texture texture in texturesAndMaterialsToSfx.Textures)
-						{
-							if (!uniqueTexturePairs.Add((entry.AudioCollisionTag, texture)))
+							// special case for if both tags are the same.
+							if (sfxInfo.AudioTag == otherTag)
 							{
-								rangeTextureDuplicates.Add((entry.AudioCollisionTag, texture));
-								Debug.LogWarning($"Duplicate texture found for tag {entry.AudioCollisionTag}: {texture}. Only the first occurrence will be used.", this);
+								if (uniqueTagToTag.Add((sfxInfo.AudioTag, otherTag)))
+								{
+									tagTagLookup[(otherTag, sfxInfo.AudioTag)] = otherTagData.SfxConfig;
+								}
+								else
+								{
+									tagToTagDuplicatesPerRange.Add((sfxInfo.AudioTag, otherTag));
+								}								
 							}
 							else
 							{
-								tagTextureSfxDict.Add((entry.AudioCollisionTag, texture), texturesAndMaterialsToSfx.SfxConfig);
-							}
-						}
-						foreach (PhysicsMaterial physicsMaterial in texturesAndMaterialsToSfx.PhysicsMaterials)
-						{
-							if (!uniquePhysicsMaterialPairs.Add((entry.AudioCollisionTag, physicsMaterial)))
-							{
-								rangeTagDuplicates.Add(entry.AudioCollisionTag);
-								Debug.LogWarning($"Duplicate physics material found for tag {entry.AudioCollisionTag}: {physicsMaterial}. Only the first occurrence will be used.", this);
-							}
-							if (!rangePhysicsMaterialDuplicates.Add((entry.AudioCollisionTag, physicsMaterial)))
-							{
-								tagPhysicsMaterialSfxDict.Add((entry.AudioCollisionTag, physicsMaterial), texturesAndMaterialsToSfx.SfxConfig);
+								if (uniqueTagToTag.Add((sfxInfo.AudioTag, otherTag)) && uniqueTagToTag.Add((otherTag, sfxInfo.AudioTag)))
+								{
+									tagTagLookup[(sfxInfo.AudioTag, otherTag)] = otherTagData.SfxConfig;
+									tagTagLookup[(otherTag, sfxInfo.AudioTag)] = otherTagData.SfxConfig;
+								}
+								else
+								{
+									tagToTagDuplicatesPerRange.Add((sfxInfo.AudioTag, otherTag));
+									tagToTagDuplicatesPerRange.Add((otherTag, sfxInfo.AudioTag));
+								}
 							}
 						}
 					}
 				}
 			}
-		}
-		
-		internal bool TryGetSfxKeyForTagTagCollision(float impulse, AudioCollisionTag tag1, AudioCollisionTag tag2, out SfxConfig sfxConfig)
-		{
-			sfxConfig = null;
-			if(TryGetTagTagCollisionSfxDictForImpulse(impulse, out var collisionSfxDict))
+
+			foreach (AudioTagMappings audioTagMappings in m_AudioTagMappings)
 			{
-				if (collisionSfxDict.TryGetValue((tag1, tag2), out sfxConfig) || collisionSfxDict.TryGetValue((tag2, tag1), out sfxConfig))
+				if (!uniqueTags.Add(audioTagMappings.AudioTag))
 				{
-					return true;
+					TagDuplicates.Add(audioTagMappings.AudioTag);
+				}
+
+				foreach (Texture2D texture in audioTagMappings.Textures)
+				{
+					if(!uniqueTextureToTag.Add(texture))
+					{
+						TextureToTagDuplicates.Add(texture);
+					}
+					else
+					{
+						m_TextureTagLookup.Add(texture, audioTagMappings.AudioTag);
+					}
+				}
+
+				foreach (PhysicsMaterial physicsMaterial in audioTagMappings.PhysicsMaterials)
+				{
+					if(!uniquePhysMatToTag.Add(physicsMaterial))
+					{
+						PhysMatToTagDuplicates.Add(physicsMaterial);
+					}
+					else
+					{
+						m_PhysMatTagLookup.Add(physicsMaterial, audioTagMappings.AudioTag);
+					}
+				}
+
+				foreach (string unityTag in audioTagMappings.UnityTags)
+				{
+					if(!uniqueUnityTagToTag.Add(unityTag))
+					{
+						UnityTagToTagDuplicates.Add(unityTag);
+					}
+					else
+					{
+						m_UnityTagLookup.Add(unityTag, audioTagMappings.AudioTag);
+					}
 				}
 			}
-			return false;
-		}
-		
-		internal bool TryGetSfxKeyForTagTextureCollision(float impulse, AudioCollisionTag tag, Texture texture, out SfxConfig sfxConfig)
-		{
-			sfxConfig = null;
-			if(TryGetTagTextureCollisionSfxDictForImpulse(impulse, out var collisionSfxDict))
+
+			for (int i = 0; i < TagToTagDuplicatesPerRange.Count; i++)
 			{
-				if (collisionSfxDict.TryGetValue((tag, texture), out sfxConfig))
+				if(TagToTagDuplicatesPerRange[i].Count > 0)
 				{
-					return true;
+					string duplicates = "";
+					foreach (var dupes in TagToTagDuplicatesPerRange[i])
+					{
+						duplicates += $"Pair: {dupes.Item1} - {dupes.Item2}\n";
+						
+					}
+					Logger.LogWarning($"Found {TagToTagDuplicatesPerRange[i].Count} duplicate tag-tag pairs in a range {i}. Pairs: {duplicates}");
 				}
 			}
-			return false;
-		}
-		
-		internal bool TryGetSfxKeyForTagPhysMatCollision(float impulse, AudioCollisionTag tag, PhysicsMaterial physMat, out SfxConfig sfxConfig)
-		{
-			sfxConfig = null;
-			if(TryGetTagPhysMatCollisionSfxDictForImpulse(impulse, out var collisionSfxDict))
+
+			for (int i = 0; i < TagDuplicatesPerRange.Count; i++)
 			{
-				if (collisionSfxDict.TryGetValue((tag, physMat), out sfxConfig))
+				if(TagDuplicatesPerRange[i].Count > 0)
 				{
-					return true;
+					Logger.LogWarning($"Found {TagDuplicatesPerRange[i].Count} duplicate tags in a range.");
 				}
 			}
-			return false;
-		}
-		
-		internal bool TryGetTagTagCollisionSfxDictForImpulse(float impulse, out Dictionary<(AudioCollisionTag, AudioCollisionTag), SfxConfig> collisionSfxDict)
-		{
-			for (int i = 0; i < m_ImpulseRangeCollisionSfx.Length; i++)
+			
+			if(UnityTagToTagDuplicates.Count > 0 || PhysMatToTagDuplicates.Count > 0 || TextureToTagDuplicates.Count > 0 || TagDuplicates.Count > 0)
 			{
-				var range = m_ImpulseRangeCollisionSfx[i];
-				if (impulse >= range.m_ImpulseRange.x && impulse <= range.m_ImpulseRange.y)
-				{
-					collisionSfxDict = m_PerRangeTagTagLookup[i];
-					return true;
-				}
+				Logger.LogWarning("Duplicates found in AudioTagMappings. TagDuplicates: " + TagDuplicates.Count + 
+					", TextureToTagDuplicates: " + TextureToTagDuplicates.Count + ", PhysMatToTagDuplicates: " + 
+					PhysMatToTagDuplicates.Count + ", UnityTagToTagDuplicates: " + UnityTagToTagDuplicates.Count);
 			}
-			collisionSfxDict = null;
-			return false;
+			Logger.Log($"Built {m_PerRangeTagTagLookup.Count} tag-tag lookups, {m_TextureTagLookup.Count} tag-texture lookups, and {m_PhysMatTagLookup.Count} tag-physmat lookups.");
 		}
 		
-		internal bool TryGetTagTextureCollisionSfxDictForImpulse(float impulse, out Dictionary<(AudioCollisionTag, Texture), SfxConfig> collisionSfxDict)
+		internal bool ValidateRanges()
 		{
-			for (int i = 0; i < m_ImpulseRangeCollisionSfx.Length; i++)
-			{
-				var range = m_ImpulseRangeCollisionSfx[i];
-				if (impulse >= range.m_ImpulseRange.x && impulse <= range.m_ImpulseRange.y)
-				{
-					collisionSfxDict = m_PerRangeTagTextureLookup[i];
-					return true;
-				}
-			}
-			collisionSfxDict = null;
-			return false;
-		}
-		
-		internal bool TryGetTagPhysMatCollisionSfxDictForImpulse(float impulse, out Dictionary<(AudioCollisionTag, PhysicsMaterial), SfxConfig> collisionSfxDict)
-		{
-			for (int i = 0; i < m_ImpulseRangeCollisionSfx.Length; i++)
-			{
-				var range = m_ImpulseRangeCollisionSfx[i];
-				if (impulse >= range.m_ImpulseRange.x && impulse <= range.m_ImpulseRange.y)
-				{
-					collisionSfxDict = m_PerRangeTagPhysMatLookup[i];
-					return true;
-				}
-			}
-			collisionSfxDict = null;
-			return false;
-		}
-		
-		private void ValidateRanges()
-		{
-			for(int i = 0; i < m_ImpulseRangeCollisionSfx.Length - 1; i++)
+			var rangesValid = true;
+			for(int i = 0; i < m_ImpulseRanges.Length - 1; i++)
 			{
 				if (i > 0)
 				{
-					for (int j = i + 1; j < m_ImpulseRangeCollisionSfx.Length; j++)
+					for (int j = i + 1; j < m_ImpulseRanges.Length; j++)
 					{
-						if(m_ImpulseRangeCollisionSfx[i].m_ImpulseRange.x > m_ImpulseRangeCollisionSfx[j].m_ImpulseRange.x
-						   && m_ImpulseRangeCollisionSfx[i].m_ImpulseRange.x < m_ImpulseRangeCollisionSfx[j].m_ImpulseRange.y)
+						if(m_ImpulseRanges[i].m_ImpulseRange.x > m_ImpulseRanges[j].m_ImpulseRange.x
+						   && m_ImpulseRanges[i].m_ImpulseRange.x < m_ImpulseRanges[j].m_ImpulseRange.y)
 						{
+							rangesValid = false;
 							Debug.LogWarning(
 								$"CollisionRange at index {i} has an impulse range that overlaps with another range. Please ensure that each SFX has a unique impulse range.");
 							continue;
 						}
-						if (m_ImpulseRangeCollisionSfx[i].m_ImpulseRange.y > m_ImpulseRangeCollisionSfx[j].m_ImpulseRange.x
-						    && m_ImpulseRangeCollisionSfx[i].m_ImpulseRange.y < m_ImpulseRangeCollisionSfx[j].m_ImpulseRange.y)
+						if (m_ImpulseRanges[i].m_ImpulseRange.y > m_ImpulseRanges[j].m_ImpulseRange.x
+						    && m_ImpulseRanges[i].m_ImpulseRange.y < m_ImpulseRanges[j].m_ImpulseRange.y)
 						{
+							rangesValid = false;
 							Debug.LogWarning(
 								$"CollisionRange at index {i} has an impulse range that overlaps with another range. Please ensure that each SFX has a unique impulse range.");
 						}
 					}
 				}
 			}
+			return rangesValid;
 		}
-
+		
 		internal void FixRanges()
 		{
 			bool changes = false;
-			Array.Sort(m_ImpulseRangeCollisionSfx, (a, b) => a.m_ImpulseRange.x.CompareTo(b.m_ImpulseRange.x));
-			for(int i = 0; i < m_ImpulseRangeCollisionSfx.Length; i++)
+			Array.Sort(m_ImpulseRanges, (a, b) => a.m_ImpulseRange.x.CompareTo(b.m_ImpulseRange.x));
+			for(int i = 0; i < m_ImpulseRanges.Length; i++)
 			{
-				if(i > 0 && m_ImpulseRangeCollisionSfx[i].m_ImpulseRange.x < m_ImpulseRangeCollisionSfx[i - 1].m_ImpulseRange.y)	
+				if(i > 0 && m_ImpulseRanges[i].m_ImpulseRange.x < m_ImpulseRanges[i - 1].m_ImpulseRange.y)	
 				{
-					if (m_ImpulseRangeCollisionSfx[i].m_ImpulseRange.y < m_ImpulseRangeCollisionSfx[i - 1].m_ImpulseRange.y)
+					if (m_ImpulseRanges[i].m_ImpulseRange.y < m_ImpulseRanges[i - 1].m_ImpulseRange.y)	
 					{
-						m_ImpulseRangeCollisionSfx[i].m_ImpulseRange.y = m_ImpulseRangeCollisionSfx[i - 1].m_ImpulseRange.y + 1;
+						m_ImpulseRanges[i].m_ImpulseRange.y = m_ImpulseRanges[i - 1].m_ImpulseRange.y + 1;
 					}
-					m_ImpulseRangeCollisionSfx[i].m_ImpulseRange.x = m_ImpulseRangeCollisionSfx[i - 1].m_ImpulseRange.y;
+					m_ImpulseRanges[i].m_ImpulseRange.x = m_ImpulseRanges[i - 1].m_ImpulseRange.y;
 					Debug.LogWarning($"CollisionRange at index {i} has an impulse range that overlaps with the previous SFX. Adjusting");
 					changes = true;
 				}
